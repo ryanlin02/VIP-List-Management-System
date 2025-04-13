@@ -767,9 +767,9 @@
     </div>
     
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     
     <!-- 主要 JavaScript 代碼 -->
     <script>
@@ -2087,19 +2087,44 @@
             // 設置預設語言
             setLanguage('zh-TW');
             
-            // 檢查用戶登入狀態
-            auth.onAuthStateChanged(user => {
+            // 添加超時處理，避免永久載入
+            const loadingTimeout = setTimeout(() => {
+                console.error('Firebase初始化超時');
                 showLoading(false);
-                
-                if (user) {
-                    currentUser = user;
-                    loadEvents();
-                    showPage('home');
-                } else {
-                    currentUser = null;
+                showNotification('系統載入超時，請檢查網路連接或Firebase配置', 'error');
+                showPage('login');
+            }, 10000); // 10秒超時
+            
+            try {
+                // 檢查用戶登入狀態
+                auth.onAuthStateChanged(user => {
+                    // 清除超時計時器
+                    clearTimeout(loadingTimeout);
+                    showLoading(false);
+                    
+                    if (user) {
+                        currentUser = user;
+                        loadEvents();
+                        showPage('home');
+                    } else {
+                        currentUser = null;
+                        showPage('login');
+                    }
+                }, error => {
+                    // 處理身份驗證觀察者錯誤
+                    clearTimeout(loadingTimeout);
+                    console.error('Firebase身份驗證錯誤:', error);
+                    showLoading(false);
+                    showNotification('身份驗證服務連接失敗', 'error');
                     showPage('login');
-                }
-            });
+                });
+            } catch (error) {
+                clearTimeout(loadingTimeout);
+                console.error('初始化失敗:', error);
+                showLoading(false);
+                showNotification('系統初始化失敗', 'error');
+                showPage('login');
+            }
         }
         
         // 初始化應用程式
