@@ -800,15 +800,6 @@
                     alert("系統初始化失敗，請稍後再試");
                 }
             }
-            
-            // 註冊導航事件
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetPage = link.getAttribute('data-page');
-                    navigateTo(targetPage);
-                });
-            });
 
             // 註冊用戶按鈕事件
             $('#register-user-btn').addEventListener('click', () => {
@@ -1103,6 +1094,15 @@
                 $('#language').value = savedLanguage;
             }
         }
+
+        // 註冊導航事件
+        document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetPage = link.getAttribute('data-page');
+                    navigateTo(targetPage);
+                });
+            });
 
         // ===== 載入示例數據 =====
         function loadSampleData() {
@@ -1866,6 +1866,7 @@
 
         // ===== 文檔載入完成後初始化應用 =====
         document.addEventListener('DOMContentLoaded', initApp);
+
     </script>
 
     <!-- 批量上傳貴賓模態框 -->
@@ -1994,6 +1995,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM已載入完成");
             
+            // 初始化應用
+            initApp();
+            
             // 手動重新綁定登入按鈕事件
             const loginBtn = document.getElementById('login-btn');
             if (loginBtn) {
@@ -2004,24 +2008,35 @@
                     const password = document.getElementById('password').value;
                     
                     // 開發階段直接進入系統
-                    if (!email || !password) {
-                        console.log("開發模式: 跳過登入驗證");
-                        document.getElementById('login-page').classList.remove('active');
-                        document.getElementById('app-page').classList.add('active');
-                        // 載入示例數據
-                        if (typeof loadSampleData === 'function') {
-                            loadSampleData();
-                        }
-                        return;
+                    document.getElementById('login-page').classList.remove('active');
+                    document.getElementById('app-page').classList.add('active');
+                    // 載入示例數據
+                    if (typeof loadSampleData === 'function') {
+                        loadSampleData();
                     }
                     
-                    // 真實登入流程
-                    if (typeof firebaseLogin === 'function') {
-                        firebaseLogin(email, password);
-                    } else {
-                        console.error("firebaseLogin函數未定義");
-                        alert("系統錯誤: 登入功能未正確載入");
-                    }
+                    // 手動綁定導航事件
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const targetPage = link.getAttribute('data-page');
+                            navigateTo(targetPage);
+                        });
+                    });
+                    
+                    // 手動綁定「進入活動」按鈕
+                    document.getElementById('enter-event-btn').addEventListener('click', () => {
+                        const eventId = document.getElementById('current-event').value;
+                        if (!eventId) {
+                            alert("請選擇一個活動");
+                            return;
+                        }
+                        
+                        currentEvent = eventId;
+                        navigateTo('guests');
+                    });
+                    
+                    return;
                 });
             } else {
                 console.error("找不到登入按鈕");
