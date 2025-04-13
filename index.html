@@ -3,777 +3,698 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="app.title">貴賓追蹤系統</title>
+    <title>VIP 來賓管理系統</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- 使用 Font Awesome 圖標 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* CSS 變數 - 用於主題配置 */
+        /* ===== 變數定義：用於主題與多語言支援 ===== */
         :root {
-            /* 顏色方案 */
-            --primary-color: #1a73e8;
-            --secondary-color: #4285f4;
-            --accent-color: #ea4335;
-            --background-color: #ffffff;
-            --secondary-background: #f8f9fa;
-            --text-color: #202124;
-            --secondary-text: #5f6368;
-            --border-color: #dadce0;
-            --success-color: #34a853;
-            --warning-color: #fbbc05;
-            --error-color: #ea4335;
+            /* 顏色變數 */
+            --color-primary: #3498db;
+            --color-secondary: #2c3e50;
+            --color-success: #2ecc71;
+            --color-warning: #f39c12;
+            --color-danger: #e74c3c;
+            --color-info: #3498db;
+            --color-light: #ecf0f1;
+            --color-dark: #2c3e50;
+            --color-white: #ffffff;
+            --color-bg: #f8f9fa;
+            --color-text: #333333;
+            --color-border: #dee2e6;
             
-            /* 字體設定 */
-            --font-family: 'Noto Sans TC', sans-serif;
+            /* 字體變數 */
+            --font-family: 'Arial', sans-serif;
             --font-size-small: 0.875rem;
             --font-size-normal: 1rem;
             --font-size-large: 1.25rem;
             --font-size-xlarge: 1.5rem;
-            --font-size-xxlarge: 2rem;
             
-            /* 間距 */
+            /* 間距變數 */
             --spacing-xs: 0.25rem;
             --spacing-sm: 0.5rem;
             --spacing-md: 1rem;
             --spacing-lg: 1.5rem;
             --spacing-xl: 2rem;
             
-            /* 圓角 */
-            --border-radius-sm: 4px;
-            --border-radius-md: 8px;
-            --border-radius-lg: 16px;
+            /* 圓角變數 */
+            --border-radius-sm: 0.25rem;
+            --border-radius-md: 0.5rem;
+            --border-radius-lg: 1rem;
             
-            /* 陰影 */
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
-            --shadow-md: 0 2px 4px rgba(0,0,0,0.1);
-            --shadow-lg: 0 4px 8px rgba(0,0,0,0.1);
+            /* 陰影變數 */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
         }
-        
-        /* 基礎樣式 */
+
+        /* ===== 基本樣式 ===== */
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
-        
+
         body {
             font-family: var(--font-family);
-            font-size: var(--font-size-normal);
-            color: var(--text-color);
-            background-color: var(--background-color);
-            line-height: 1.5;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
             margin: 0;
             padding: 0;
         }
-        
-        h1, h2, h3, h4, h5, h6 {
-            margin-bottom: var(--spacing-md);
-            font-weight: 500;
-        }
-        
-        h1 {
-            font-size: var(--font-size-xxlarge);
-        }
-        
-        h2 {
-            font-size: var(--font-size-xlarge);
-        }
-        
-        p {
-            margin-bottom: var(--spacing-md);
-        }
-        
-        /* 容器樣式 */
-        .container {
-            max-width: 100%;
+
+        header {
+            background-color: var(--color-primary);
+            color: var(--color-white);
             padding: var(--spacing-md);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        main {
+            padding: var(--spacing-md);
+            max-width: 100%;
             margin: 0 auto;
+            min-height: calc(100vh - 120px);
         }
-        
-        /* 頁面部分 */
-        .page {
-            display: none;
-            min-height: 100vh;
-            padding-bottom: 60px; /* 預留底部導航空間 */
+
+        footer {
+            background-color: var(--color-secondary);
+            color: var(--color-white);
+            text-align: center;
+            padding: var(--spacing-sm);
+            font-size: var(--font-size-small);
         }
-        
-        .page.active {
-            display: block;
+
+        /* ===== 導航樣式 ===== */
+        nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--color-secondary);
+            padding: var(--spacing-sm) 0;
         }
-        
-        /* 表單元素 */
+
+        nav a {
+            color: var(--color-white);
+            text-decoration: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            transition: background-color 0.3s;
+            font-size: var(--font-size-small);
+        }
+
+        nav a:hover, nav a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        nav i {
+            margin-right: var(--spacing-xs);
+        }
+
+        /* ===== 卡片樣式 ===== */
+        .card {
+            background-color: var(--color-white);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: var(--font-size-large);
+            margin-bottom: var(--spacing-sm);
+            color: var(--color-secondary);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--spacing-xs);
+        }
+
+        /* ===== 表單樣式 ===== */
         .form-group {
-            margin-bottom: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
         }
-        
+
         label {
             display: block;
             margin-bottom: var(--spacing-xs);
-            font-weight: 500;
+            font-weight: bold;
         }
-        
+
         input, select, textarea {
             width: 100%;
             padding: var(--spacing-sm);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--color-border);
             border-radius: var(--border-radius-sm);
             font-size: var(--font-size-normal);
-            font-family: var(--font-family);
         }
-        
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-        
-        /* 按鈕樣式 */
-        .btn {
-            display: inline-block;
-            padding: var(--spacing-sm) var(--spacing-lg);
-            background-color: var(--primary-color);
-            color: white;
+
+        button {
+            background-color: var(--color-primary);
+            color: var(--color-white);
             border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
             border-radius: var(--border-radius-sm);
-            font-size: var(--font-size-normal);
             cursor: pointer;
-            text-align: center;
-            text-decoration: none;
+            font-size: var(--font-size-normal);
             transition: background-color 0.3s;
         }
-        
-        .btn:hover {
-            background-color: var(--secondary-color);
+
+        button:hover {
+            background-color: #2980b9;
         }
-        
-        .btn-block {
-            display: block;
-            width: 100%;
+
+        button.secondary {
+            background-color: var(--color-secondary);
         }
-        
-        .btn-secondary {
-            background-color: var(--secondary-background);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
+
+        button.secondary:hover {
+            background-color: #1a252f;
         }
-        
-        .btn-secondary:hover {
-            background-color: var(--border-color);
+
+        button.success {
+            background-color: var(--color-success);
         }
-        
-        .btn-success {
-            background-color: var(--success-color);
+
+        button.warning {
+            background-color: var(--color-warning);
         }
-        
-        .btn-warning {
-            background-color: var(--warning-color);
+
+        button.danger {
+            background-color: var(--color-danger);
         }
-        
-        .btn-danger {
-            background-color: var(--error-color);
-        }
-        
-        /* 卡片樣式 */
-        .card {
-            background-color: var(--background-color);
-            border-radius: var(--border-radius-md);
-            box-shadow: var(--shadow-md);
-            padding: var(--spacing-lg);
-            margin-bottom: var(--spacing-lg);
-        }
-        
-        /* 清單樣式 */
+
+        /* ===== 列表樣式 ===== */
         .list {
             list-style: none;
+            padding: 0;
         }
-        
+
         .list-item {
-            padding: var(--spacing-md);
-            border-bottom: 1px solid var(--border-color);
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .list-item:last-child {
             border-bottom: none;
         }
-        
-        /* 狀態標記 */
-        .status-badge {
-            display: inline-block;
+
+        .list-item-title {
+            font-weight: bold;
+        }
+
+        .list-item-subtitle {
+            font-size: var(--font-size-small);
+            color: #6c757d;
+        }
+
+        /* ===== 狀態標記 ===== */
+        .status {
             padding: var(--spacing-xs) var(--spacing-sm);
             border-radius: var(--border-radius-sm);
             font-size: var(--font-size-small);
-            font-weight: 500;
+            display: inline-block;
         }
-        
+
         .status-pending {
-            background-color: var(--border-color);
-            color: var(--secondary-text);
+            background-color: #e2e3e5;
+            color: #383d41;
         }
-        
-        .status-arrived {
-            background-color: var(--success-color);
+
+        .status-checked-in {
+            background-color: var(--color-success);
             color: white;
         }
-        
+
         .status-introduced {
-            background-color: var(--primary-color);
+            background-color: #17a2b8;
             color: white;
         }
-        
-        .status-proxy {
-            background-color: var(--warning-color);
-            color: var(--text-color);
+
+        .status-late {
+            background-color: var(--color-warning);
+            color: white;
         }
-        
+
         .status-absent {
-            background-color: var(--error-color);
+            background-color: var(--color-danger);
             color: white;
         }
-        
-        /* 頁頭樣式 */
-        .header {
-            background-color: var(--primary-color);
+
+        .status-represented {
+            background-color: #6f42c1;
             color: white;
-            padding: var(--spacing-md);
-            text-align: center;
-            position: relative;
         }
-        
-        .header-title {
-            margin: 0;
-            font-size: var(--font-size-xlarge);
-        }
-        
-        /* 底部導航 */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--background-color);
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+
+        /* ===== 搜尋與過濾 ===== */
+        .search-bar {
             display: flex;
-            justify-content: space-around;
-            padding: var(--spacing-xs) 0;
+            margin-bottom: var(--spacing-md);
         }
-        
-        .nav-item {
-            flex: 1;
-            text-align: center;
-            padding: var(--spacing-sm);
-            color: var(--secondary-text);
-            text-decoration: none;
-            font-size: var(--font-size-small);
+
+        .search-bar input {
+            flex-grow: 1;
+            margin-right: var(--spacing-sm);
         }
-        
-        .nav-item.active {
-            color: var(--primary-color);
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
         }
-        
-        .nav-icon {
-            display: block;
-            font-size: var(--font-size-large);
-            margin-bottom: var(--spacing-xs);
+
+        .filter-group select {
+            flex-grow: 1;
         }
-        
-        /* 加載中動畫 */
-        .loading {
+
+        /* ===== 操作按鈕 ===== */
+        .action-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .action-button {
+            background-color: transparent;
+            border: none;
+            color: var(--color-secondary);
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            color: var(--color-primary);
+        }
+
+        /* ===== 模態框樣式 ===== */
+        .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255,255,255,0.8);
             z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: var(--color-white);
+            margin: 15% auto;
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-md);
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: var(--spacing-md);
         }
-        
-        .loading.active {
+
+        .modal-title {
+            font-size: var(--font-size-large);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: var(--font-size-xlarge);
+            cursor: pointer;
+            color: var(--color-secondary);
+        }
+
+        .modal-footer {
             display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
         }
-        
+
+        /* ===== 頁面容器 ===== */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* ===== 響應式設計 ===== */
+        @media (min-width: 768px) {
+            main {
+                max-width: 768px;
+            }
+
+            nav {
+                justify-content: center;
+                gap: var(--spacing-lg);
+            }
+
+            nav a {
+                font-size: var(--font-size-normal);
+            }
+        }
+
+        /* ===== 登錄頁面 ===== */
+        .login-container {
+            max-width: 400px;
+            margin: 10% auto;
+        }
+
+        .login-container .card {
+            padding: var(--spacing-lg);
+        }
+
+        .login-title {
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+            color: var(--color-secondary);
+        }
+
+        .demo-notice {
+            text-align: center;
+            margin-top: var(--spacing-md);
+            font-size: var(--font-size-small);
+            color: #6c757d;
+        }
+
+        /* 載入中指示器 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: var(--spacing-md);
+        }
+
         .spinner {
-            border: 4px solid var(--border-color);
-            border-top: 4px solid var(--primary-color);
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            border-left-color: var(--color-primary);
             animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* 對話框 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            padding: var(--spacing-md);
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background-color: var(--background-color);
-            border-radius: var(--border-radius-md);
-            max-width: 500px;
-            width: 100%;
-            padding: var(--spacing-lg);
-            box-shadow: var(--shadow-lg);
-        }
-        
-        .modal-header {
-            margin-bottom: var(--spacing-md);
-        }
-        
-        .modal-title {
-            margin: 0;
-        }
-        
-        .modal-body {
-            margin-bottom: var(--spacing-lg);
-        }
-        
-        .modal-footer {
-            display: flex;
-            justify-content: flex-end;
-        }
-        
-        .modal-btn {
-            margin-left: var(--spacing-sm);
-        }
-        
-        /* 主持人視圖 */
-        .presenter-view {
-            font-size: var(--font-size-large);
-        }
-        
-        .presenter-guest-name {
-            font-size: var(--font-size-xlarge);
-            font-weight: bold;
-        }
-        
-        .presenter-guest-title {
-            font-size: var(--font-size-large);
-            color: var(--secondary-text);
-        }
-        
-        /* 搜尋欄 */
-        .search-bar {
-            margin-bottom: var(--spacing-md);
-            position: relative;
-        }
-        
-        .search-input {
-            padding-right: 40px;
-        }
-        
-        .search-icon {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--secondary-text);
-        }
-        
-        /* CSV上傳區域 */
-        .upload-area {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--border-radius-md);
-            padding: var(--spacing-xl);
-            text-align: center;
-            margin-bottom: var(--spacing-lg);
-            cursor: pointer;
-        }
-        
-        .upload-area:hover {
-            border-color: var(--primary-color);
-        }
-        
-        /* 檔案上傳隱藏輸入 */
-        .file-input {
-            display: none;
-        }
-        
-        /* 通知樣式 */
-        .notification {
-            position: fixed;
-            top: var(--spacing-lg);
-            right: var(--spacing-lg);
-            padding: var(--spacing-md);
-            background-color: var(--background-color);
-            border-radius: var(--border-radius-sm);
-            box-shadow: var(--shadow-md);
-            max-width: 300px;
-            z-index: 1500;
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        
-        .notification.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .notification-success {
-            border-left: 4px solid var(--success-color);
-        }
-        
-        .notification-error {
-            border-left: 4px solid var(--error-color);
-        }
-        
-        .notification-warning {
-            border-left: 4px solid var(--warning-color);
-        }
-        
-        /* 貴賓分類標籤 */
-        .category-tag {
-            display: inline-block;
-            background-color: var(--secondary-background);
-            border-radius: var(--border-radius-sm);
-            padding: var(--spacing-xs) var(--spacing-sm);
-            margin-right: var(--spacing-xs);
-            font-size: var(--font-size-small);
-            color: var(--secondary-text);
-        }
-        
-        /* 日誌項目 */
-        .log-item {
-            padding: var(--spacing-sm);
-            border-left: 3px solid var(--border-color);
-            margin-bottom: var(--spacing-sm);
-        }
-        
-        .log-time {
-            font-size: var(--font-size-small);
-            color: var(--secondary-text);
-        }
-        
-        .log-user {
-            font-weight: 500;
-        }
-        
-        /* 響應式調整 */
-        @media (min-width: 768px) {
-            .container {
-                max-width: 750px;
-            }
-        }
     </style>
-    <!-- Google Fonts - Noto Sans TC 繁體中文字型 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome 圖標 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <!-- 加載中動畫 -->
-    <div id="loading" class="loading">
-        <div class="spinner"></div>
-    </div>
-    
-    <!-- 登入頁面 -->
-    <div id="loginPage" class="page active">
-        <div class="container">
-            <div class="card" style="margin-top: var(--spacing-xl);">
-                <h1 class="text-center" data-i18n="login.title">貴賓追蹤系統</h1>
-                <p class="text-center" data-i18n="login.subtitle">請登入以繼續使用系統</p>
-                
-                <div id="loginForm">
-                    <div class="form-group">
-                        <label for="email" data-i18n="login.email">電子郵件</label>
-                        <input type="email" id="email" placeholder="your@email.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password" data-i18n="login.password">密碼</label>
-                        <input type="password" id="password" placeholder="••••••••" required>
-                    </div>
-                    <div class="form-group">
-                        <button id="loginButton" class="btn btn-block" data-i18n="login.submit">登入</button>
-                    </div>
-                    <p id="loginError" class="text-error" style="display: none; color: var(--error-color);"></p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 主頁面/活動列表 -->
-    <div id="homePage" class="page">
-        <div class="header">
-            <h1 class="header-title" data-i18n="home.title">活動列表</h1>
-            <button id="logoutButton" style="position: absolute; right: var(--spacing-md); top: var(--spacing-md); background: none; border: none; color: white;">
-                <i class="fas fa-sign-out-alt"></i>
-            </button>
-        </div>
-        
-        <div class="container">
+    <!-- 登錄頁面 -->
+    <div id="login-page" class="page active">
+        <div class="login-container">
             <div class="card">
+                <h2 class="login-title">VIP 來賓管理系統</h2>
                 <div class="form-group">
-                    <label for="newEventName" data-i18n="events.create">建立新活動</label>
-                    <div style="display: flex;">
-                        <input type="text" id="newEventName" placeholder="活動名稱" style="flex: 1; margin-right: var(--spacing-sm);">
-                        <button id="createEventButton" class="btn">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <h2 data-i18n="events.current">進行中活動</h2>
-            <div id="currentEventsList" class="list">
-                <!-- 動態生成的活動列表 -->
-                <div class="list-item">
-                    <div>
-                        <div>2025新春聯誼會</div>
-                        <div style="font-size: var(--font-size-small); color: var(--secondary-text);">
-                            <i class="far fa-calendar"></i> 2025/01/15 | 
-                            <i class="fas fa-user-check"></i> 25/40
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" data-i18n="events.enter">進入</button>
-                </div>
-            </div>
-            
-            <h2 data-i18n="events.past">歷史活動</h2>
-            <div id="pastEventsList" class="list">
-                <!-- 動態生成的歷史活動列表 -->
-            </div>
-        </div>
-    </div>
-    
-    <!-- 活動詳情頁面 -->
-    <div id="eventPage" class="page">
-        <div class="header">
-            <button id="backToHomeButton" style="position: absolute; left: var(--spacing-md); top: var(--spacing-md); background: none; border: none; color: white;">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h1 id="eventTitle" class="header-title">活動名稱</h1>
-        </div>
-        
-        <div class="container">
-            <div class="card">
-                <div id="eventStats" style="display: flex; justify-content: space-around; text-align: center;">
-                    <div>
-                        <div style="font-size: var(--font-size-xlarge); font-weight: bold; color: var(--primary-color);">0</div>
-                        <div data-i18n="event.total">總人數</div>
-                    </div>
-                    <div>
-                        <div style="font-size: var(--font-size-xlarge); font-weight: bold; color: var(--success-color);">0</div>
-                        <div data-i18n="event.arrived">已到場</div>
-                    </div>
-                    <div>
-                        <div style="font-size: var(--font-size-xlarge); font-weight: bold; color: var(--primary-color);">0</div>
-                        <div data-i18n="event.introduced">已介紹</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="search-bar">
-                <input type="text" id="guestSearch" class="search-input" placeholder="搜尋貴賓...">
-                <i class="fas fa-search search-icon"></i>
-            </div>
-            
-            <div style="display: flex; margin-bottom: var(--spacing-md);">
-                <button id="showAllGuests" class="btn btn-secondary" style="flex: 1; margin-right: var(--spacing-xs);" data-i18n="event.all">全部</button>
-                <button id="showArrivedGuests" class="btn btn-secondary" style="flex: 1; margin-right: var(--spacing-xs);" data-i18n="event.arrived">已到場</button>
-                <button id="showIntroducedGuests" class="btn btn-secondary" style="flex: 1;" data-i18n="event.introduced">已介紹</button>
-            </div>
-            
-            <div id="guestList" class="list">
-                <!-- 動態生成的貴賓列表 -->
-            </div>
-            
-            <button id="addGuestButton" class="btn btn-block" style="margin-top: var(--spacing-lg);" data-i18n="event.add_guest">
-                <i class="fas fa-plus"></i> 新增貴賓
-            </button>
-            
-            <button id="importGuestsButton" class="btn btn-secondary btn-block" style="margin-top: var(--spacing-md);" data-i18n="event.import">
-                <i class="fas fa-file-import"></i> 匯入貴賓名單
-            </button>
-        </div>
-    </div>
-    
-    <!-- 主持人視圖頁面 -->
-    <div id="presenterPage" class="page">
-        <div class="header">
-            <button id="backToEventButton" style="position: absolute; left: var(--spacing-md); top: var(--spacing-md); background: none; border: none; color: white;">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h1 class="header-title" data-i18n="presenter.title">主持人視圖</h1>
-        </div>
-        
-        <div class="container presenter-view">
-            <div class="card">
-                <h3 data-i18n="presenter.next">下一位介紹</h3>
-                <div id="nextGuest" class="presenter-guest">
-                    <div class="presenter-guest-title">台北市市長</div>
-                    <div class="presenter-guest-name">王小明</div>
-                </div>
-                <div style="display: flex; margin-top: var(--spacing-md);">
-                    <button id="markIntroducedButton" class="btn btn-success" style="flex: 1; margin-right: var(--spacing-xs);" data-i18n="presenter.mark_introduced">
-                        <i class="fas fa-check"></i> 已介紹
-                    </button>
-                    <button id="skipGuestButton" class="btn btn-secondary" style="flex: 1;" data-i18n="presenter.skip">
-                        <i class="fas fa-forward"></i> 跳過
-                    </button>
-                </div>
-            </div>
-            
-            <h2 data-i18n="presenter.arrived">已到場貴賓</h2>
-            <div id="presenterGuestList" class="list">
-                <!-- 動態生成的貴賓列表，僅顯示已到場但未介紹的貴賓 -->
-            </div>
-        </div>
-    </div>
-    
-    <!-- 貴賓詳情/編輯對話框 -->
-    <div id="guestDetailModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalGuestTitle" class="modal-title" data-i18n="guest.details">貴賓詳情</h2>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="guestName" data-i18n="guest.name">姓名</label>
-                    <input type="text" id="guestName">
+                    <label for="email">電子郵箱</label>
+                    <input type="email" id="email" placeholder="請輸入電子郵箱">
                 </div>
                 <div class="form-group">
-                    <label for="guestTitle" data-i18n="guest.title">頭銜</label>
-                    <input type="text" id="guestTitle">
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" placeholder="請輸入密碼">
                 </div>
-                <div class="form-group">
-                    <label for="guestCategory" data-i18n="guest.category">分類</label>
-                    <select id="guestCategory">
-                        <option value="government" data-i18n="guest.category_gov">政府單位</option>
-                        <option value="business" data-i18n="guest.category_biz">企業代表</option>
-                        <option value="academic" data-i18n="guest.category_acad">學術代表</option>
-                        <option value="other" data-i18n="guest.category_other">其他</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="guestStatus" data-i18n="guest.status">狀態</label>
-                    <select id="guestStatus">
-                        <option value="pending" data-i18n="guest.status_pending">未到場</option>
-                        <option value="arrived" data-i18n="guest.status_arrived">已到場</option>
-                        <option value="introduced" data-i18n="guest.status_introduced">已介紹</option>
-                        <option value="proxy" data-i18n="guest.status_proxy">代理出席</option>
-                        <option value="absent" data-i18n="guest.status_absent">不會出席</option>
-                    </select>
-                </div>
-                <div id="proxyInfoGroup" class="form-group" style="display: none;">
-                    <label for="proxyName" data-i18n="guest.proxy_name">代理人姓名</label>
-                    <input type="text" id="proxyName">
-                </div>
-                <div id="proxyTitleGroup" class="form-group" style="display: none;">
-                    <label for="proxyTitle" data-i18n="guest.proxy_title">代理人頭銜</label>
-                    <input type="text" id="proxyTitle">
-                </div>
-                <div class="form-group">
-                    <label for="guestNotes" data-i18n="guest.notes">備註</label>
-                    <textarea id="guestNotes" rows="3"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="cancelGuestButton" class="btn btn-secondary modal-btn" data-i18n="common.cancel">取消</button>
-                <button id="saveGuestButton" class="btn modal-btn" data-i18n="common.save">儲存</button>
+                <button id="login-btn" class="btn-block">登入</button>
+                <p class="demo-notice">開發階段：點擊「登入」按鈕直接進入系統</p>
             </div>
         </div>
-    </div>
-    
-    <!-- CSV匯入對話框 -->
-    <div id="importModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title" data-i18n="import.title">匯入貴賓名單</h2>
-            </div>
-            <div class="modal-body">
-                <p data-i18n="import.info">請上傳CSV檔案，檔案內容必須包含「姓名」和「頭銜」兩個欄位。</p>
-                <div class="upload-area" id="uploadArea">
-                    <i class="fas fa-file-upload" style="font-size: 48px; color: var(--secondary-text); margin-bottom: var(--spacing-md);"></i>
-                    <p data-i18n="import.drop">點擊或拖放檔案至此</p>
-                </div>
-                <input type="file" id="fileInput" class="file-input" accept=".csv">
-                <div id="fileInfo" style="display: none;">
-                    <p><i class="fas fa-file"></i> <span id="fileName"></span></p>
-                </div>
-                <a href="#" id="downloadTemplateLink" data-i18n="import.template">下載範本檔案</a>
-            </div>
-            <div class="modal-footer">
-                <button id="cancelImportButton" class="btn btn-secondary modal-btn" data-i18n="common.cancel">取消</button>
-                <button id="confirmImportButton" class="btn modal-btn" data-i18n="import.confirm">匯入</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 通知元素 -->
-    <div id="notification" class="notification">
-        <div id="notificationMessage"></div>
-    </div>
-    
-    <!-- 底部導航 -->
-    <div id="bottomNav" class="bottom-nav">
-        <a href="#" id="navGuests" class="nav-item active">
-            <i class="fas fa-users nav-icon"></i>
-            <span data-i18n="nav.guests">貴賓</span>
-        </a>
-        <a href="#" id="navPresenter" class="nav-item">
-            <i class="fas fa-microphone nav-icon"></i>
-            <span data-i18n="nav.presenter">主持人</span>
-        </a>
-        <a href="#" id="navLogs" class="nav-item">
-            <i class="fas fa-history nav-icon"></i>
-            <span data-i18n="nav.logs">記錄</span>
-        </a>
     </div>
 
-    <!-- 操作日誌頁面 -->
-    <div id="logsPage" class="page">
-        <div class="header">
-            <h1 class="header-title" data-i18n="logs.title">操作記錄</h1>
-        </div>
-        
-        <div class="container">
-            <div class="card">
-                <div class="form-group">
-                    <label for="logFilter" data-i18n="logs.filter">篩選記錄</label>
-                    <select id="logFilter">
-                        <option value="all" data-i18n="logs.filter_all">全部記錄</option>
-                        <option value="status" data-i18n="logs.filter_status">狀態變更</option>
-                        <option value="create" data-i18n="logs.filter_create">新增貴賓</option>
-                        <option value="edit" data-i18n="logs.filter_edit">編輯資料</option>
-                    </select>
+    <!-- 應用主頁面 -->
+    <div id="app-page" class="page">
+        <header>
+            <h1>VIP 來賓管理系統</h1>
+        </header>
+
+        <nav>
+            <a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> 儀表板</a>
+            <a href="#" class="nav-link" data-page="guests"><i class="fas fa-users"></i> 貴賓管理</a>
+            <a href="#" class="nav-link" data-page="events"><i class="fas fa-calendar-alt"></i> 活動管理</a>
+            <a href="#" class="nav-link" data-page="settings"><i class="fas fa-cog"></i> 設定</a>
+        </nav>
+
+        <main>
+            <!-- 儀表板頁面 -->
+            <div id="dashboard-page" class="page active">
+                <div class="card">
+                    <h2 class="card-title">儀表板</h2>
+                    <p>歡迎使用 VIP 來賓管理系統</p>
+                    <div class="form-group">
+                        <label for="current-event">選擇當前活動</label>
+                        <select id="current-event">
+                            <option value="1">2023 年度企業研討會</option>
+                            <option value="2">科技創新論壇</option>
+                            <option value="3">產業合作交流會</option>
+                        </select>
+                    </div>
+                    <button id="enter-event-btn">進入活動</button>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title">活動摘要</h2>
+                    <div class="stats">
+                        <div>總貴賓數量：<span id="total-guests">0</span></div>
+                        <div>已簽到：<span id="checked-in-guests">0</span></div>
+                        <div>已介紹：<span id="introduced-guests">0</span></div>
+                        <div>待處理：<span id="pending-guests">0</span></div>
+                    </div>
                 </div>
             </div>
-            
-            <div id="logsList">
-                <!-- 動態生成的日誌列表 -->
+
+            <!-- 貴賓管理頁面 -->
+            <div id="guests-page" class="page">
+                <div class="card">
+                    <h2 class="card-title">貴賓管理</h2>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="search-guests" placeholder="搜尋貴賓">
+                        <button id="add-guest-btn">新增</button>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <select id="filter-status">
+                            <option value="all">所有狀態</option>
+                            <option value="pending">等待中</option>
+                            <option value="checked-in">已簽到</option>
+                            <option value="introduced">已介紹</option>
+                            <option value="late">將晚到</option>
+                            <option value="absent">不會出席</option>
+                            <option value="represented">由代理出席</option>
+                        </select>
+                        
+                        <select id="filter-category">
+                            <option value="all">所有分類</option>
+                            <option value="government">政府單位</option>
+                            <option value="corporate">企業代表</option>
+                            <option value="media">媒體</option>
+                            <option value="partner">合作夥伴</option>
+                        </select>
+                    </div>
+                    
+                    <ul id="guest-list" class="list">
+                        <!-- 示例貴賓項目 -->
+                        <li class="list-item" data-id="1">
+                            <div>
+                                <div class="list-item-title">李大明</div>
+                                <div class="list-item-subtitle">台灣科技公司 - 執行長</div>
+                                <span class="status status-checked-in">已簽到</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
+                                <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                        </li>
+                        <li class="list-item" data-id="2">
+                            <div>
+                                <div class="list-item-title">王小華</div>
+                                <div class="list-item-subtitle">政府經濟部 - 司長</div>
+                                <span class="status status-pending">等待中</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
+                                <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 活動管理頁面 -->
+            <div id="events-page" class="page">
+                <div class="card">
+                    <h2 class="card-title">活動管理</h2>
+                    <button id="add-event-btn">新增活動</button>
+                    
+                    <ul id="event-list" class="list">
+                        <!-- 示例活動項目 -->
+                        <li class="list-item" data-id="1">
+                            <div>
+                                <div class="list-item-title">2023 年度企業研討會</div>
+                                <div class="list-item-subtitle">2023/12/15 - 國際會議中心</div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
+                                <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                        <li class="list-item" data-id="2">
+                            <div>
+                                <div class="list-item-title">科技創新論壇</div>
+                                <div class="list-item-subtitle">2023/11/20 - 科技大樓</div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
+                                <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 設定頁面 -->
+            <div id="settings-page" class="page">
+                <div class="card">
+                    <h2 class="card-title">系統設定</h2>
+                    
+                    <div class="form-group">
+                        <label for="language">語言</label>
+                        <select id="language">
+                            <option value="zh-TW">繁體中文</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="theme">主題</label>
+                        <select id="theme">
+                            <option value="light">明亮</option>
+                            <option value="dark">深色</option>
+                        </select>
+                    </div>
+                    
+                    <button id="save-settings-btn">儲存設定</button>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title">帳號資訊</h2>
+                    <div class="user-info">
+                        <p>用戶名：<span id="user-name">管理員</span></p>
+                        <p>角色：<span id="user-role">系統管理員</span></p>
+                    </div>
+                    <button id="logout-btn" class="danger">登出</button>
+                </div>
+            </div>
+
+            <!-- 載入中指示器 -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2023 VIP 來賓管理系統 - 開發版本</p>
+        </footer>
+    </div>
+
+    <!-- 更新貴賓狀態模態框 -->
+    <div id="update-status-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">更新貴賓狀態</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="guest-name-display">貴賓：<strong>李大明</strong></p>
+                <div class="form-group">
+                    <label for="guest-status">狀態</label>
+                    <select id="guest-status">
+                        <option value="pending">等待中</option>
+                        <option value="checked-in">已簽到</option>
+                        <option value="introduced">已介紹</option>
+                        <option value="late">將晚到</option>
+                        <option value="absent">不會出席</option>
+                        <option value="represented">由代理出席</option>
+                    </select>
+                </div>
+                <div id="proxy-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="proxy-name">代理人姓名</label>
+                        <input type="text" id="proxy-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="proxy-title">代理人職稱</label>
+                        <input type="text" id="proxy-title">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="status-note">備註</label>
+                    <textarea id="status-note" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary close-modal-btn">取消</button>
+                <button id="save-status-btn" class="success">儲存</button>
             </div>
         </div>
     </div>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    
-    <!-- 主要 JavaScript 代碼 -->
+
+    <!-- 編輯貴賓模態框 -->
+    <div id="edit-guest-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">編輯貴賓資料</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-guest-name">姓名</label>
+                    <input type="text" id="edit-guest-name">
+                </div>
+                <div class="form-group">
+                    <label for="edit-guest-title">職稱</label>
+                    <input type="text" id="edit-guest-title">
+                </div>
+                <div class="form-group">
+                    <label for="edit-guest-organization">單位</label>
+                    <input type="text" id="edit-guest-organization">
+                </div>
+                <div class="form-group">
+                    <label for="edit-guest-category">分類</label>
+                    <select id="edit-guest-category">
+                        <option value="government">政府單位</option>
+                        <option value="corporate">企業代表</option>
+                        <option value="media">媒體</option>
+                        <option value="partner">合作夥伴</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-guest-priority">優先順序</label>
+                    <input type="number" id="edit-guest-priority" min="1" max="10">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary close-modal-btn">取消</button>
+                <button id="save-guest-btn" class="success">儲存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Firebase 配置
+        // ===== Firebase 配置 =====
         const firebaseConfig = {
             apiKey: "AIzaSyDvL60JmAbzjDHeoIAduGyvmBsSQN5UElw",
             authDomain: "vip-list-management-system.firebaseapp.com",
@@ -787,1360 +708,504 @@
         // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
-        const db = firebase.firestore();
+        const database = firebase.database();
 
-        // 開發模式：啟用 Firestore 無登入訪問
-        // 注意：正式環境中應移除此設定
-        db.settings({
-            ignoreUndefinedProperties: true // 忽略未定義屬性，避免某些錯誤
-        });
-
-        // 可選：匿名登入以獲取有效的 Auth 對象
-        /*
-        auth.signInAnonymously().catch(error => {
-            console.error("匿名登入失敗:", error);
-        });
-        */
-        
-        // 全局變量
+        // ===== 全域變數 =====
         let currentUser = null;
         let currentEvent = null;
-        let currentGuests = [];
-        let currentGuestId = null;
+        let currentPage = 'dashboard';
+        let guestsList = [];
+        let eventsList = [];
+
+        // ===== DOM 元素選擇器 =====
+        const $ = (selector) => document.querySelector(selector);
         
-        // DOM 元素
-        const pages = {
-            login: document.getElementById('loginPage'),
-            home: document.getElementById('homePage'),
-            event: document.getElementById('eventPage'),
-            presenter: document.getElementById('presenterPage'),
-            logs: document.getElementById('logsPage')
-        };
-        
-        const elements = {
-            // 登入頁面元素
-            loginForm: document.getElementById('loginForm'),
-            emailInput: document.getElementById('email'),
-            passwordInput: document.getElementById('password'),
-            loginButton: document.getElementById('loginButton'),
-            loginError: document.getElementById('loginError'),
-            
-            // 主頁面元素
-            logoutButton: document.getElementById('logoutButton'),
-            newEventName: document.getElementById('newEventName'),
-            createEventButton: document.getElementById('createEventButton'),
-            currentEventsList: document.getElementById('currentEventsList'),
-            pastEventsList: document.getElementById('pastEventsList'),
-            
-            // 活動頁面元素
-            eventTitle: document.getElementById('eventTitle'),
-            backToHomeButton: document.getElementById('backToHomeButton'),
-            eventStats: document.getElementById('eventStats'),
-            guestSearch: document.getElementById('guestSearch'),
-            showAllGuests: document.getElementById('showAllGuests'),
-            showArrivedGuests: document.getElementById('showArrivedGuests'),
-            showIntroducedGuests: document.getElementById('showIntroducedGuests'),
-            guestList: document.getElementById('guestList'),
-            addGuestButton: document.getElementById('addGuestButton'),
-            importGuestsButton: document.getElementById('importGuestsButton'),
-            
-            // 主持人視圖元素
-            backToEventButton: document.getElementById('backToEventButton'),
-            nextGuest: document.getElementById('nextGuest'),
-            markIntroducedButton: document.getElementById('markIntroducedButton'),
-            skipGuestButton: document.getElementById('skipGuestButton'),
-            presenterGuestList: document.getElementById('presenterGuestList'),
-            
-            // 貴賓詳情對話框元素
-            guestDetailModal: document.getElementById('guestDetailModal'),
-            modalGuestTitle: document.getElementById('modalGuestTitle'),
-            guestName: document.getElementById('guestName'),
-            guestTitle: document.getElementById('guestTitle'),
-            guestCategory: document.getElementById('guestCategory'),
-            guestStatus: document.getElementById('guestStatus'),
-            proxyInfoGroup: document.getElementById('proxyInfoGroup'),
-            proxyName: document.getElementById('proxyName'),
-            proxyTitleGroup: document.getElementById('proxyTitleGroup'),
-            proxyTitle: document.getElementById('proxyTitle'),
-            guestNotes: document.getElementById('guestNotes'),
-            cancelGuestButton: document.getElementById('cancelGuestButton'),
-            saveGuestButton: document.getElementById('saveGuestButton'),
-            
-            // CSV 匯入對話框元素
-            importModal: document.getElementById('importModal'),
-            uploadArea: document.getElementById('uploadArea'),
-            fileInput: document.getElementById('fileInput'),
-            fileInfo: document.getElementById('fileInfo'),
-            fileName: document.getElementById('fileName'),
-            downloadTemplateLink: document.getElementById('downloadTemplateLink'),
-            cancelImportButton: document.getElementById('cancelImportButton'),
-            confirmImportButton: document.getElementById('confirmImportButton'),
-            
-            // 通知元素
-            notification: document.getElementById('notification'),
-            notificationMessage: document.getElementById('notificationMessage'),
-            
-            // 底部導航
-            bottomNav: document.getElementById('bottomNav'),
-            navGuests: document.getElementById('navGuests'),
-            navPresenter: document.getElementById('navPresenter'),
-            navLogs: document.getElementById('navLogs'),
-            
-            // 日誌頁面元素
-            logFilter: document.getElementById('logFilter'),
-            logsList: document.getElementById('logsList'),
-            
-            // 加載中動畫
-            loading: document.getElementById('loading')
-        };
-        
-        // 功能實現
-        
-        // 1. 登入功能
-        elements.loginButton.addEventListener('click', login);
-        
-        async function login() {
-            const email = elements.emailInput.value.trim();
-            const password = elements.passwordInput.value;
-            
-            if (!email || !password) {
-                showError('請輸入電子郵件和密碼');
-                return;
-            }
-            
-            showLoading(true);
-            try {
-                const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                currentUser = userCredential.user;
-                clearLoginForm();
-                hideError();
-                
-                // 登入成功後載入活動列表
-                loadEvents();
-                
-                showPage('home');
-            } catch (error) {
-                console.error('登入失敗:', error);
-                showError('登入失敗: ' + getErrorMessage(error));
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        function showError(message) {
-            elements.loginError.textContent = message;
-            elements.loginError.style.display = 'block';
-        }
-        
-        function hideError() {
-            elements.loginError.style.display = 'none';
-        }
-        
-        function clearLoginForm() {
-            elements.emailInput.value = '';
-            elements.passwordInput.value = '';
-        }
-        
-        function getErrorMessage(error) {
-            switch (error.code) {
-                case 'auth/invalid-email':
-                    return '無效的電子郵件格式';
-                case 'auth/user-disabled':
-                    return '此帳號已被停用';
-                case 'auth/user-not-found':
-                    return '找不到此帳號';
-                case 'auth/wrong-password':
-                    return '密碼錯誤';
-                default:
-                    return error.message;
-            }
-        }
-        
-        // 2. 登出功能
-        elements.logoutButton.addEventListener('click', logout);
-        
-        async function logout() {
-            try {
-                await auth.signOut();
-                currentUser = null;
-                showPage('login');
-                showNotification('已成功登出');
-            } catch (error) {
-                console.error('登出失敗:', error);
-                showNotification('登出失敗', 'error');
-            }
-        }
-        
-        // 3. 頁面導航
-        function showPage(pageId) {
+        // ===== 頁面導航函數 =====
+        function navigateTo(pageName) {
             // 隱藏所有頁面
-            Object.values(pages).forEach(page => {
+            document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
             
-            // 顯示指定頁面
-            pages[pageId].classList.add('active');
+            // 顯示所選頁面
+            $(`#${pageName}-page`).classList.add('active');
             
-            // 根據頁面更新底部導航
-            if (pageId === 'login') {
-                elements.bottomNav.style.display = 'none';
-            } else {
-                elements.bottomNav.style.display = 'flex';
-                
-                // 更新導航項目狀態
-                const navItems = [elements.navGuests, elements.navPresenter, elements.navLogs];
-                navItems.forEach(item => item.classList.remove('active'));
-                
-                if (pageId === 'event') {
-                    elements.navGuests.classList.add('active');
-                } else if (pageId === 'presenter') {
-                    elements.navPresenter.classList.add('active');
-                } else if (pageId === 'logs') {
-                    elements.navLogs.classList.add('active');
-                }
-            }
-        }
-        
-        // 底部導航事件
-        elements.navGuests.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (currentEvent) {
-                showPage('event');
-            }
-        });
-        
-        elements.navPresenter.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (currentEvent) {
-                showPage('presenter');
-                updatePresenterView();
-            }
-        });
-        
-        elements.navLogs.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (currentEvent) {
-                showPage('logs');
-                loadEventLogs();
-            }
-        });
-        
-        elements.backToHomeButton.addEventListener('click', () => {
-            currentEvent = null;
-            showPage('home');
-        });
-        
-        elements.backToEventButton.addEventListener('click', () => {
-            showPage('event');
-        });
-        
-        // 4. 活動管理
-        elements.createEventButton.addEventListener('click', createEvent);
-        
-        async function createEvent() {
-            const eventName = elements.newEventName.value.trim();
-            if (!eventName) {
-                showNotification('請輸入活動名稱', 'error');
-                return;
+            // 更新導航選中狀態
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            const activeNavLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
+            if (activeNavLink) {
+                activeNavLink.classList.add('active');
             }
             
-            showLoading(true);
-            try {
-                const eventData = {
-                    name: eventName,
-                    createdBy: currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'active'
-                };
-                
-                const docRef = await db.collection('events').add(eventData);
-                elements.newEventName.value = '';
-                
-                // 重新載入活動列表
-                loadEvents();
-                showNotification('活動建立成功');
-            } catch (error) {
-                console.error('建立活動失敗:', error);
-                showNotification('建立活動失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        async function loadEvents() {
-            showLoading(true);
-            try {
-                // 在開發模式下，不需要用戶ID過濾
-                const snapshot = await db.collection('events')
-                    // .where('createdBy', '==', currentUser.uid) // 暫時移除用戶過濾
-                    .orderBy('createdAt', 'desc')
-                    .get();
-                
-                const currentEvents = [];
-                const pastEvents = [];
-                
-                snapshot.forEach(doc => {
-                    const event = { id: doc.id, ...doc.data() };
-                    if (event.status === 'active') {
-                        currentEvents.push(event);
-                    } else {
-                        pastEvents.push(event);
-                    }
-                });
-                
-                renderEventsList(currentEvents, elements.currentEventsList);
-                renderEventsList(pastEvents, elements.pastEventsList);
-                
-                // 開發模式：如果沒有活動，自動創建一個測試活動
-                if (currentEvents.length === 0 && pastEvents.length === 0) {
-                    createTestEvent();
-                }
-            } catch (error) {
-                console.error('載入活動失敗:', error);
-                showNotification('載入活動列表失敗', 'error');
-            } finally {
-                // 確保無論如何都關閉加載指示器
-                showLoading(false);
-            }
+            currentPage = pageName;
         }
 
-        // 開發測試用：自動創建測試活動
-        async function createTestEvent() {
-            try {
-                const eventData = {
-                    name: "測試活動 - " + new Date().toLocaleDateString(),
-                    createdBy: currentUser.uid,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'active'
-                };
-                
-                await db.collection('events').add(eventData);
-                showNotification('已創建測試活動');
-                
-                // 重新載入活動列表
-                setTimeout(() => loadEvents(), 1000);
-            } catch (error) {
-                console.error('創建測試活動失敗:', error);
-            }
-        }
-        function renderEventsList(events, container) {
-            container.innerHTML = '';
-            
-            if (events.length === 0) {
-                container.innerHTML = '<div class="list-item"><div>無活動資料</div></div>';
-                return;
-            }
-            
-            events.forEach(event => {
-                const eventEl = document.createElement('div');
-                eventEl.className = 'list-item';
-                
-                const eventDate = event.createdAt ? new Date(event.createdAt.toDate()) : new Date();
-                const dateString = `${eventDate.getFullYear()}/${(eventDate.getMonth() + 1).toString().padStart(2, '0')}/${eventDate.getDate().toString().padStart(2, '0')}`;
-                
-                eventEl.innerHTML = `
-                    <div>
-                        <div>${event.name}</div>
-                        <div style="font-size: var(--font-size-small); color: var(--secondary-text);">
-                            <i class="far fa-calendar"></i> ${dateString}
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary event-enter-btn" data-id="${event.id}">進入</button>
-                `;
-                
-                container.appendChild(eventEl);
-                
-                // 添加進入活動事件
-                const enterBtn = eventEl.querySelector('.event-enter-btn');
-                enterBtn.addEventListener('click', () => {
-                    enterEvent(event.id);
-                });
-            });
-        }
-        
-        async function enterEvent(eventId) {
-            showLoading(true);
-            try {
-                const doc = await db.collection('events').doc(eventId).get();
-                if (doc.exists) {
-                    currentEvent = { id: doc.id, ...doc.data() };
-                    elements.eventTitle.textContent = currentEvent.name;
-                    
-                    // 載入貴賓資料
-                    loadGuests();
-                    
-                    showPage('event');
-                } else {
-                    showNotification('找不到活動資料', 'error');
-                }
-            } catch (error) {
-                console.error('進入活動失敗:', error);
-                showNotification('載入活動資料失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        // 5. 貴賓管理
-        elements.addGuestButton.addEventListener('click', () => {
-            openGuestModal('add');
-        });
-        
-        elements.cancelGuestButton.addEventListener('click', closeGuestModal);
-        
-        elements.saveGuestButton.addEventListener('click', saveGuest);
-        
-        elements.guestStatus.addEventListener('change', function() {
-            if (this.value === 'proxy') {
-                elements.proxyInfoGroup.style.display = 'block';
-                elements.proxyTitleGroup.style.display = 'block';
-            } else {
-                elements.proxyInfoGroup.style.display = 'none';
-                elements.proxyTitleGroup.style.display = 'none';
-            }
-        });
-        
-        async function loadGuests() {
-            if (!currentEvent) return;
-            
-            showLoading(true);
-            try {
-                const snapshot = await db.collection('events').doc(currentEvent.id)
-                    .collection('guests')
-                    .orderBy('category')
-                    .orderBy('name')
-                    .get();
-                
-                currentGuests = [];
-                snapshot.forEach(doc => {
-                    currentGuests.push({ id: doc.id, ...doc.data() });
-                });
-                
-                updateGuestStats();
-                renderGuestList();
-            } catch (error) {
-                console.error('載入貴賓資料失敗:', error);
-                showNotification('載入貴賓資料失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        function updateGuestStats() {
-            if (!currentGuests.length) {
-                const stats = elements.eventStats.children;
-                stats[0].querySelector('div:first-child').textContent = '0';
-                stats[1].querySelector('div:first-child').textContent = '0';
-                stats[2].querySelector('div:first-child').textContent = '0';
-                return;
-            }
-            
-            const totalGuests = currentGuests.length;
-            const arrivedGuests = currentGuests.filter(g => 
-                g.status === 'arrived' || g.status === 'introduced' || g.status === 'proxy'
-            ).length;
-            const introducedGuests = currentGuests.filter(g => g.status === 'introduced').length;
-            
-            const stats = elements.eventStats.children;
-            stats[0].querySelector('div:first-child').textContent = totalGuests;
-            stats[1].querySelector('div:first-child').textContent = arrivedGuests;
-            stats[2].querySelector('div:first-child').textContent = introducedGuests;
-        }
-        
-        function renderGuestList(filter = 'all') {
-            const container = elements.guestList;
-            container.innerHTML = '';
-            
-            if (!currentGuests.length) {
-                container.innerHTML = '<div class="list-item"><div>尚未新增貴賓</div></div>';
-                return;
-            }
-            
-            let filteredGuests = [...currentGuests];
-            
-            // 套用搜尋過濾
-            const searchTerm = elements.guestSearch.value.toLowerCase();
-            if (searchTerm) {
-                filteredGuests = filteredGuests.filter(guest => 
-                    guest.name.toLowerCase().includes(searchTerm) || 
-                    guest.title.toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            // 套用狀態過濾
-            if (filter === 'arrived') {
-                filteredGuests = filteredGuests.filter(g => 
-                    g.status === 'arrived' || g.status === 'proxy'
-                );
-            } else if (filter === 'introduced') {
-                filteredGuests = filteredGuests.filter(g => g.status === 'introduced');
-            }
-            
-            // 渲染貴賓列表
-            filteredGuests.forEach(guest => {
-                const guestEl = document.createElement('div');
-                guestEl.className = 'list-item';
-                
-                // 設定狀態標誌類別
-                let statusBadgeClass = 'status-badge';
-                let statusText = '';
-                
-                switch (guest.status) {
-                    case 'pending':
-                        statusBadgeClass += ' status-pending';
-                        statusText = '未到場';
-                        break;
-                    case 'arrived':
-                        statusBadgeClass += ' status-arrived';
-                        statusText = '已到場';
-                        break;
-                    case 'introduced':
-                        statusBadgeClass += ' status-introduced';
-                        statusText = '已介紹';
-                        break;
-                    case 'proxy':
-                        statusBadgeClass += ' status-proxy';
-                        statusText = '代理出席';
-                        break;
-                    case 'absent':
-                        statusBadgeClass += ' status-absent';
-                        statusText = '不會出席';
-                        break;
-                }
-                
-                // 渲染貴賓卡片
-                guestEl.innerHTML = `
-                    <div>
-                        <div><strong>${guest.name}</strong> <span class="category-tag">${getCategoryText(guest.category)}</span></div>
-                        <div style="color: var(--secondary-text);">${guest.title}</div>
-                        ${guest.status === 'proxy' ? 
-                            `<div style="font-size: var(--font-size-small); color: var(--warning-color);">
-                                <i class="fas fa-user-friends"></i> 代理人: ${guest.proxyName || '未指定'}
-                            </div>` : ''}
-                    </div>
-                    <div style="text-align: right;">
-                        <span class="${statusBadgeClass}">${statusText}</span>
-                        <button class="btn btn-secondary guest-edit-btn" style="margin-top: var(--spacing-xs);" data-id="${guest.id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
-                `;
-                
-                container.appendChild(guestEl);
-                
-                // 添加編輯事件
-                const editBtn = guestEl.querySelector('.guest-edit-btn');
-                editBtn.addEventListener('click', () => {
-                    openGuestModal('edit', guest.id);
-                });
-            });
-        }
-        
-        function getCategoryText(category) {
-            switch (category) {
-                case 'government':
-                    return '政府單位';
-                case 'business':
-                    return '企業代表';
-                case 'academic':
-                    return '學術代表';
-                default:
-                    return '其他';
-            }
-        }
-        
-        function openGuestModal(mode, guestId = null) {
-            elements.modalGuestTitle.textContent = mode === 'add' ? '新增貴賓' : '編輯貴賓';
-            
-            // 重置表單
-            elements.guestName.value = '';
-            elements.guestTitle.value = '';
-            elements.guestCategory.value = 'government';
-            elements.guestStatus.value = 'pending';
-            elements.proxyName.value = '';
-            elements.proxyTitle.value = '';
-            elements.guestNotes.value = '';
-            elements.proxyInfoGroup.style.display = 'none';
-            elements.proxyTitleGroup.style.display = 'none';
-            
-            currentGuestId = guestId;
-            
-            // 如果是編輯模式，載入貴賓資料
-            if (mode === 'edit' && guestId) {
-                const guest = currentGuests.find(g => g.id === guestId);
-                if (guest) {
-                    elements.guestName.value = guest.name || '';
-                    elements.guestTitle.value = guest.title || '';
-                    elements.guestCategory.value = guest.category || 'government';
-                    elements.guestStatus.value = guest.status || 'pending';
-                    elements.guestNotes.value = guest.notes || '';
-                    
-                    if (guest.status === 'proxy') {
-                        elements.proxyInfoGroup.style.display = 'block';
-                        elements.proxyTitleGroup.style.display = 'block';
-                        elements.proxyName.value = guest.proxyName || '';
-                        elements.proxyTitle.value = guest.proxyTitle || '';
-                    }
-                }
-            }
-            
-            elements.guestDetailModal.classList.add('active');
-        }
-        
-        function closeGuestModal() {
-            elements.guestDetailModal.classList.remove('active');
-            currentGuestId = null;
-        }
-        
-        async function saveGuest() {
-            const name = elements.guestName.value.trim();
-            const title = elements.guestTitle.value.trim();
-            
-            if (!name) {
-                showNotification('請輸入貴賓姓名', 'error');
-                return;
-            }
-            
-            if (!title) {
-                showNotification('請輸入貴賓頭銜', 'error');
-                return;
-            }
-            
-            const guestData = {
-                name: name,
-                title: title,
-                category: elements.guestCategory.value,
-                status: elements.guestStatus.value,
-                notes: elements.guestNotes.value.trim(),
-                updatedBy: currentUser.uid,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            // 如果是代理出席，添加代理人資訊
-            if (guestData.status === 'proxy') {
-                guestData.proxyName = elements.proxyName.value.trim();
-                guestData.proxyTitle = elements.proxyTitle.value.trim();
-                
-                if (!guestData.proxyName) {
-                    showNotification('請輸入代理人姓名', 'error');
-                    return;
-                }
-            }
-            
-            showLoading(true);
-            try {
-                const guestsRef = db.collection('events').doc(currentEvent.id).collection('guests');
-                
-                // 記錄操作日誌資料
-                const logData = {
-                    type: currentGuestId ? 'edit' : 'create',
-                    guestName: name,
-                    userId: currentUser.uid,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                if (currentGuestId) {
-                    // 更新現有貴賓
-                    await guestsRef.doc(currentGuestId).update(guestData);
-                    
-                    // 記錄狀態變更
-                    const oldGuest = currentGuests.find(g => g.id === currentGuestId);
-                    if (oldGuest && oldGuest.status !== guestData.status) {
-                        logData.type = 'status';
-                        logData.oldStatus = oldGuest.status;
-                        logData.newStatus = guestData.status;
-                    }
-                    
-                    showNotification('貴賓資料已更新');
-                } else {
-                    // 創建新貴賓
-                    guestData.createdBy = currentUser.uid;
-                    guestData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    
-                    await guestsRef.add(guestData);
-                    showNotification('已新增貴賓');
-                }
-                
-                // 添加操作日誌
-                await db.collection('events').doc(currentEvent.id)
-                    .collection('logs').add(logData);
-                
-                closeGuestModal();
-                loadGuests();
-            } catch (error) {
-                console.error('儲存貴賓資料失敗:', error);
-                showNotification('儲存失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        // 狀態篩選功能
-        elements.showAllGuests.addEventListener('click', () => {
-            resetFilterButtons();
-            elements.showAllGuests.classList.add('btn-primary');
-            elements.showAllGuests.classList.remove('btn-secondary');
-            renderGuestList('all');
-        });
-        
-        elements.showArrivedGuests.addEventListener('click', () => {
-            resetFilterButtons();
-            elements.showArrivedGuests.classList.add('btn-primary');
-            elements.showArrivedGuests.classList.remove('btn-secondary');
-            renderGuestList('arrived');
-        });
-        
-        elements.showIntroducedGuests.addEventListener('click', () => {
-            resetFilterButtons();
-            elements.showIntroducedGuests.classList.add('btn-primary');
-            elements.showIntroducedGuests.classList.remove('btn-secondary');
-            renderGuestList('introduced');
-        });
-        
-        function resetFilterButtons() {
-            elements.showAllGuests.classList.remove('btn-primary');
-            elements.showAllGuests.classList.add('btn-secondary');
-            elements.showArrivedGuests.classList.remove('btn-primary');
-            elements.showArrivedGuests.classList.add('btn-secondary');
-            elements.showIntroducedGuests.classList.remove('btn-primary');
-            elements.showIntroducedGuests.classList.add('btn-secondary');
-        }
-        
-        // 搜尋功能
-        elements.guestSearch.addEventListener('input', function() {
-            renderGuestList('all');
-        });
-        
-        // 6. 主持人視圖
-        function updatePresenterView() {
-            if (!currentGuests.length) {
-                elements.nextGuest.innerHTML = '<div>無待介紹貴賓</div>';
-                elements.presenterGuestList.innerHTML = '<div class="list-item"><div>無待介紹貴賓</div></div>';
-                return;
-            }
-            
-            // 過濾出已到場但未介紹的貴賓
-            const pendingIntroGuests = currentGuests.filter(g => 
-                (g.status === 'arrived' || g.status === 'proxy') && g.status !== 'introduced'
-            );
-            
-            // 更新下一位介紹的貴賓
-            if (pendingIntroGuests.length > 0) {
-                const nextGuest = pendingIntroGuests[0];
-                
-                let guestInfo = '';
-                if (nextGuest.status === 'proxy') {
-                    guestInfo = `
-                        <div class="presenter-guest-title">${nextGuest.title}</div>
-                        <div class="presenter-guest-name">${nextGuest.name}</div>
-                        <div style="color: var(--warning-color); margin-top: var(--spacing-xs);">
-                            <i class="fas fa-user-friends"></i> 由 ${nextGuest.proxyName || '未指定'} (${nextGuest.proxyTitle || '未指定頭銜'}) 代表出席
-                        </div>
-                    `;
-                } else {
-                    guestInfo = `
-                        <div class="presenter-guest-title">${nextGuest.title}</div>
-                        <div class="presenter-guest-name">${nextGuest.name}</div>
-                    `;
-                }
-                
-                elements.nextGuest.innerHTML = guestInfo;
-                
-                // 設定按鈕的貴賓ID
-                elements.markIntroducedButton.setAttribute('data-id', nextGuest.id);
-                elements.skipGuestButton.setAttribute('data-id', nextGuest.id);
-            } else {
-                elements.nextGuest.innerHTML = '<div>所有貴賓已介紹完畢</div>';
-                elements.markIntroducedButton.setAttribute('data-id', '');
-                elements.skipGuestButton.setAttribute('data-id', '');
-            }
-            
-            // 更新待介紹貴賓列表
-            const container = elements.presenterGuestList;
-            container.innerHTML = '';
-            
-            if (pendingIntroGuests.length === 0) {
-                container.innerHTML = '<div class="list-item"><div>所有貴賓已介紹完畢</div></div>';
-                return;
-            }
-            
-            pendingIntroGuests.forEach((guest, index) => {
-                if (index === 0) return; // 跳過第一位（已在頂部顯示）
-                
-                const guestEl = document.createElement('div');
-                guestEl.className = 'list-item';
-                
-                let guestInfo = `
-                    <div>
-                        <div class="presenter-guest-title">${guest.title}</div>
-                        <div class="presenter-guest-name">${guest.name}</div>
-                    </div>
-                `;
-                
-                if (guest.status === 'proxy') {
-                    guestInfo = `
-                    <div>
-                        <div class="presenter-guest-title">${guest.title}</div>
-                        <div class="presenter-guest-name">${guest.name}</div>
-                        <div style="color: var(--warning-color); font-size: var(--font-size-small);">
-                            <i class="fas fa-user-friends"></i> 由 ${guest.proxyName || '未指定'} 代表出席
-                        </div>
-                    </div>
-                    `;
-                }
-                
-                guestEl.innerHTML = `
-                    ${guestInfo}
-                    <button class="btn mark-introduced-btn" data-id="${guest.id}">
-                        <i class="fas fa-check"></i>
-                    </button>
-                `;
-                
-                container.appendChild(guestEl);
-                
-                // 添加標記為已介紹的事件
-                const markBtn = guestEl.querySelector('.mark-introduced-btn');
-                markBtn.addEventListener('click', (e) => {
-                    markGuestIntroduced(guest.id);
-                });
-            });
-        }
-        
-        elements.markIntroducedButton.addEventListener('click', function() {
-            const guestId = this.getAttribute('data-id');
-            if (guestId) {
-                markGuestIntroduced(guestId);
-            }
-        });
-        
-        elements.skipGuestButton.addEventListener('click', function() {
-            updatePresenterView();
-        });
-        
-        async function markGuestIntroduced(guestId) {
-            if (!guestId) return;
-            
-            showLoading(true);
-            try {
-                const guestRef = db.collection('events').doc(currentEvent.id)
-                    .collection('guests').doc(guestId);
-                
-                await guestRef.update({
-                    status: 'introduced',
-                    updatedBy: currentUser.uid,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                // 記錄日誌
-                const guest = currentGuests.find(g => g.id === guestId);
-                const logData = {
-                    type: 'status',
-                    guestName: guest ? guest.name : '',
-                    userId: currentUser.uid,
-                    oldStatus: guest ? guest.status : '',
-                    newStatus: 'introduced',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                await db.collection('events').doc(currentEvent.id)
-                    .collection('logs').add(logData);
-                
-                // 重新載入貴賓資料
-                await loadGuests();
-                updatePresenterView();
-                
-                showNotification('已標記為已介紹');
-            } catch (error) {
-                console.error('更新貴賓狀態失敗:', error);
-                showNotification('更新失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        // 7. CSV匯入功能
-        elements.importGuestsButton.addEventListener('click', openImportModal);
-        elements.cancelImportButton.addEventListener('click', closeImportModal);
-        elements.uploadArea.addEventListener('click', () => elements.fileInput.click());
-        
-        elements.fileInput.addEventListener('change', handleFileSelection);
-        
-        elements.downloadTemplateLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            downloadTemplate();
-        });
-        
-        elements.confirmImportButton.addEventListener('click', importGuests);
-        
-        function openImportModal() {
-            elements.fileInfo.style.display = 'none';
-            elements.fileInput.value = '';
-            elements.importModal.classList.add('active');
-        }
-        
-        function closeImportModal() {
-            elements.importModal.classList.remove('active');
-        }
-        
-        function handleFileSelection(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-                showNotification('請上傳CSV檔案', 'error');
-                return;
-            }
-            
-            elements.fileName.textContent = file.name;
-            elements.fileInfo.style.display = 'block';
-        }
-        
-        function downloadTemplate() {
-            const header = "姓名,頭銜,分類\n";
-            const example = "王小明,台北市市長,government\n張大方,台灣科技公司董事長,business\n李教授,台灣大學資工系教授,academic";
-            const csvContent = header + example;
-            
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', '貴賓名單範本.csv');
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        async function importGuests() {
-            const file = elements.fileInput.files[0];
-            if (!file) {
-                showNotification('請選擇CSV檔案', 'error');
-                return;
-            }
-            
-            showLoading(true);
-            try {
-                const text = await readFileAsText(file);
-                const result = parseCSV(text);
-                
-                if (result.data.length === 0) {
-                    showNotification('CSV檔案無有效資料', 'error');
-                    return;
-                }
-                
-                // 確認CSV檔案格式
-                const headers = result.meta.fields || [];
-                if (!headers.includes('姓名') || !headers.includes('頭銜')) {
-                    showNotification('CSV檔案必須包含「姓名」和「頭銜」欄位', 'error');
-                    return;
-                }
-                
-                // 轉換為貴賓資料
-                const guestsToAdd = [];
-                for (const row of result.data) {
-                    if (!row.姓名 || !row.頭銜) continue;
-                    
-                    let category = 'other';
-                    if (row.分類) {
-                        if (row.分類.includes('政府') || row.分類 === 'government') {
-                            category = 'government';
-                        } else if (row.分類.includes('企業') || row.分類 === 'business') {
-                            category = 'business';
-                        } else if (row.分類.includes('學術') || row.分類 === 'academic') {
-                            category = 'academic';
-                        }
-                    }
-                    
-                    guestsToAdd.push({
-                        name: row.姓名,
-                        title: row.頭銜,
-                        category: category,
-                        status: 'pending',
-                        createdBy: currentUser.uid,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedBy: currentUser.uid,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-                
-                if (guestsToAdd.length === 0) {
-                    showNotification('CSV檔案中無有效貴賓資料', 'error');
-                    return;
-                }
-                
-                // 批量添加貴賓
-                const guestsRef = db.collection('events').doc(currentEvent.id).collection('guests');
-                const batch = db.batch();
-                
-                for (const guest of guestsToAdd) {
-                    const docRef = guestsRef.doc();
-                    batch.set(docRef, guest);
-                }
-                
-                await batch.commit();
-                
-                // 添加操作日誌
-                await db.collection('events').doc(currentEvent.id)
-                    .collection('logs').add({
-                        type: 'import',
-                        count: guestsToAdd.length,
-                        userId: currentUser.uid,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                
-                closeImportModal();
-                loadGuests();
-                
-                showNotification(`成功匯入 ${guestsToAdd.length} 位貴賓`);
-            } catch (error) {
-                console.error('匯入貴賓失敗:', error);
-                showNotification('匯入失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        function readFileAsText(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file);
-            });
-        }
-        
-        function parseCSV(text) {
-            // 簡單的CSV解析
-            const lines = text.split(/\r\n|\n/);
-            if (lines.length === 0) return { data: [], meta: { fields: [] } };
-            
-            const headers = lines[0].split(',').map(h => h.trim());
-            const data = [];
-            
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                
-                const values = lines[i].split(',').map(v => v.trim());
-                if (values.length !== headers.length) continue;
-                
-                const row = {};
-                for (let j = 0; j < headers.length; j++) {
-                    row[headers[j]] = values[j];
-                }
-                
-                data.push(row);
-            }
-            
-            return {
-                data: data,
-                meta: { fields: headers }
-            };
-        }
-        
-        // 8. 日誌功能
-        elements.logFilter.addEventListener('change', () => {
-            loadEventLogs();
-        });
-        
-        async function loadEventLogs() {
-            if (!currentEvent) return;
-            
-            const filterValue = elements.logFilter.value;
-            
-            showLoading(true);
-            try {
-                // 在開發模式下，簡化日誌加載
-                const container = elements.logsList;
-                container.innerHTML = '<div class="card">開發模式：系統日誌已禁用</div>';
-                
-                // 如果您需要實際的日誌數據，請取消註釋以下代碼
-                /*
-                let query = db.collection('events').doc(currentEvent.id)
-                    .collection('logs')
-                    .orderBy('timestamp', 'desc');
-                
-                if (filterValue !== 'all') {
-                    query = query.where('type', '==', filterValue);
-                }
-                
-                const snapshot = await query.limit(50).get();
-                
-                if (snapshot.empty) {
-                    container.innerHTML = '<div class="card">無操作記錄</div>';
-                    return;
-                }
-                
-                // 用於儲存使用者資訊的快取
-                const userCache = {};
-                
-                // 獲取所有日誌紀錄
-                const logs = [];
-                snapshot.forEach(doc => {
-                    logs.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // 渲染日誌
-                logs.forEach(log => {
-                    const logEl = document.createElement('div');
-                    logEl.className = 'log-item';
-                    
-                    const timestamp = log.timestamp ? new Date(log.timestamp.toDate()) : new Date();
-                    const timeString = `${timestamp.getFullYear()}/${(timestamp.getMonth() + 1).toString().padStart(2, '0')}/${timestamp.getDate().toString().padStart(2, '0')} ${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}`;
-                    
-                    let actionText = '';
-                    switch (log.type) {
-                        case 'create':
-                            actionText = `新增了貴賓 「${log.guestName || ''}」`;
-                            break;
-                        case 'edit':
-                            actionText = `編輯了貴賓 「${log.guestName || ''}」 的資料`;
-                            break;
-                        case 'status':
-                            actionText = `將貴賓 「${log.guestName || ''}」 的狀態從 「${getStatusText(log.oldStatus)}」 改為 「${getStatusText(log.newStatus)}」`;
-                            break;
-                        case 'import':
-                            actionText = `匯入了 ${log.count || 0} 位貴賓`;
-                            break;
-                        default:
-                            actionText = '進行了操作';
-                    }
-                    
-                    logEl.innerHTML = `
-                        <div class="log-time">${timeString}</div>
-                        <div><span class="log-user">開發者</span> ${actionText}</div>
-                    `;
-                    
-                    container.appendChild(logEl);
-                });
-                */
-            } catch (error) {
-                console.error('載入日誌失敗:', error);
-                showNotification('載入操作記錄失敗', 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        function getStatusText(status) {
-            switch (status) {
-                case 'pending':
-                    return '未到場';
-                case 'arrived':
-                    return '已到場';
-                case 'introduced':
-                    return '已介紹';
-                case 'proxy':
-                    return '代理出席';
-                case 'absent':
-                    return '不會出席';
-                default:
-                    return '未知狀態';
-            }
-        }
-        
-        // 9. 通用工具函數
-        function showLoading(show) {
-            if (show) {
-                elements.loading.classList.add('active');
-            } else {
-                elements.loading.classList.remove('active');
-            }
-        }
-        
-        function showNotification(message, type = 'success') {
-            elements.notificationMessage.textContent = message;
-            
-            elements.notification.className = 'notification';
-            elements.notification.classList.add(`notification-${type}`);
-            elements.notification.classList.add('active');
-            
-            setTimeout(() => {
-                elements.notification.classList.remove('active');
-            }, 3000);
-        }
-        
-        // 10. 多語言支援
-        const translations = {
-            'zh-TW': {
-                'app.title': '貴賓追蹤系統',
-                'login.title': '貴賓追蹤系統',
-                'login.subtitle': '請登入以繼續使用系統',
-                'login.email': '電子郵件',
-                'login.password': '密碼',
-                'login.submit': '登入',
-                'home.title': '活動列表',
-                'events.create': '建立新活動',
-                'events.current': '進行中活動',
-                'events.past': '歷史活動',
-                'events.enter': '進入',
-                'event.total': '總人數',
-                'event.arrived': '已到場',
-                'event.introduced': '已介紹',
-                'event.all': '全部',
-                'event.add_guest': '新增貴賓',
-                'event.import': '匯入貴賓名單',
-                'presenter.title': '主持人視圖',
-                'presenter.next': '下一位介紹',
-                'presenter.mark_introduced': '已介紹',
-                'presenter.skip': '跳過',
-                'presenter.arrived': '已到場貴賓',
-                'guest.details': '貴賓詳情',
-                'guest.name': '姓名',
-                'guest.title': '頭銜',
-                'guest.category': '分類',
-                'guest.category_gov': '政府單位',
-                'guest.category_biz': '企業代表',
-                'guest.category_acad': '學術代表',
-                'guest.category_other': '其他',
-                'guest.status': '狀態',
-                'guest.status_pending': '未到場',
-                'guest.status_arrived': '已到場',
-                'guest.status_introduced': '已介紹',
-                'guest.status_proxy': '代理出席',
-                'guest.status_absent': '不會出席',
-                'guest.proxy_name': '代理人姓名',
-                'guest.proxy_title': '代理人頭銜',
-                'guest.notes': '備註',
-                'import.title': '匯入貴賓名單',
-                'import.info': '請上傳CSV檔案，檔案內容必須包含「姓名」和「頭銜」兩個欄位。',
-                'import.drop': '點擊或拖放檔案至此',
-                'import.template': '下載範本檔案',
-                'import.confirm': '匯入',
-                'common.cancel': '取消',
-                'common.save': '儲存',
-                'nav.guests': '貴賓',
-                'nav.presenter': '主持人',
-                'nav.logs': '記錄',
-                'logs.title': '操作記錄',
-                'logs.filter': '篩選記錄',
-                'logs.filter_all': '全部記錄',
-                'logs.filter_status': '狀態變更',
-                'logs.filter_create': '新增貴賓',
-                'logs.filter_edit': '編輯資料'
-            },
-            'en': {
-                'app.title': 'VIP Tracking System',
-                'login.title': 'VIP Tracking System',
-                'login.subtitle': 'Please log in to continue',
-                'login.email': 'Email',
-                'login.password': 'Password',
-                'login.submit': 'Log In',
-                'home.title': 'Event List',
-                'events.create': 'Create New Event',
-                'events.current': 'Current Events',
-                'events.past': 'Past Events',
-                'events.enter': 'Enter',
-                'event.total': 'Total',
-                'event.arrived': 'Arrived',
-                'event.introduced': 'Introduced',
-                'event.all': 'All',
-                'event.add_guest': 'Add VIP',
-                'event.import': 'Import VIP List',
-                'presenter.title': 'Presenter View',
-                'presenter.next': 'Next Introduction',
-                'presenter.mark_introduced': 'Mark Introduced',
-                'presenter.skip': 'Skip',
-                'presenter.arrived': 'Arrived VIPs',
-                'guest.details': 'VIP Details',
-                'guest.name': 'Name',
-                'guest.title': 'Title',
-                'guest.category': 'Category',
-                'guest.category_gov': 'Government',
-                'guest.category_biz': 'Business',
-                'guest.category_acad': 'Academic',
-                'guest.category_other': 'Other',
-                'guest.status': 'Status',
-                'guest.status_pending': 'Not Arrived',
-                'guest.status_arrived': 'Arrived',
-                'guest.status_introduced': 'Introduced',
-                'guest.status_proxy': 'Proxy Attendance',
-                'guest.status_absent': 'Absent',
-                'guest.proxy_name': 'Proxy Name',
-                'guest.proxy_title': 'Proxy Title',
-                'guest.notes': 'Notes',
-                'import.title': 'Import VIP List',
-                'import.info': 'Please upload a CSV file with "Name" and "Title" columns.',
-                'import.drop': 'Click or drag file here',
-                'import.template': 'Download template',
-                'import.confirm': 'Import',
-                'common.cancel': 'Cancel',
-                'common.save': 'Save',
-                'nav.guests': 'VIPs',
-                'nav.presenter': 'Presenter',
-                'nav.logs': 'Logs',
-                'logs.title': 'Operation Logs',
-                'logs.filter': 'Filter Logs',
-                'logs.filter_all': 'All Logs',
-                'logs.filter_status': 'Status Changes',
-                'logs.filter_create': 'New VIPs',
-                'logs.filter_edit': 'Edited Data'
-            }
-        };
-        
-        let currentLanguage = 'zh-TW';
-        
-        function setLanguage(language) {
-            if (!translations[language]) {
-                language = 'zh-TW';
-            }
-            
-            currentLanguage = language;
-            
-            // 更新所有帶有 data-i18n 屬性的元素
-            const elements = document.querySelectorAll('[data-i18n]');
-            elements.forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[language][key]) {
-                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                        el.placeholder = translations[language][key];
-                    } else {
-                        el.textContent = translations[language][key];
-                    }
-                }
-            });
-            
-            // 更新頁面標題
-            document.title = translations[language]['app.title'];
+        // ===== 模態框函數 =====
+        function openModal(modalId) {
+            $(modalId).style.display = 'block';
         }
 
-        // 全局錯誤處理，確保不會永久顯示加載指示器
-        window.addEventListener('error', function(event) {
-            console.error('全局錯誤:', event.error);
-            showLoading(false);
-            showNotification('系統發生錯誤，請重新整理頁面', 'error');
-        });
+        function closeModal(modalId) {
+            $(modalId).style.display = 'none';
+        }
 
-        // 確保頁面載入完成後不顯示加載指示器
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                showLoading(false);
-            }, 1000); // 給予1秒緩衝時間
-        });
-        
-        // 11. 啟動應用程式
-        // 在 initApp() 函數中修改，大約在第 1596 行附近，要暫時移除登入需求，我們需要修改 JavaScript 部分，讓系統默認顯示主頁而不是登入頁面。
+        // ===== 顯示載入中指示器 =====
+        function showLoading() {
+            $('#loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            $('#loading').style.display = 'none';
+        }
+
+        // ===== 初始化應用 =====
         function initApp() {
-            // 設置預設語言
-            setLanguage('zh-TW');
+            // 註冊導航事件
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetPage = link.getAttribute('data-page');
+                    navigateTo(targetPage);
+                });
+            });
+
+            // 初始化模態框事件
+            document.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                });
+            });
+
+            // 登入按鈕事件 (開發階段直接進入系統)
+            $('#login-btn').addEventListener('click', () => {
+                // 開發階段不進行實際登入驗證
+                $('#login-page').classList.remove('active');
+                $('#app-page').classList.add('active');
+                loadSampleData();
+            });
+
+            // 登出按鈕事件
+            $('#logout-btn').addEventListener('click', () => {
+                $('#app-page').classList.remove('active');
+                $('#login-page').classList.add('active');
+            });
+
+            // 更新狀態按鈕事件
+            document.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action="update-status"]');
+                if (button) {
+                    const listItem = button.closest('.list-item');
+                    const guestId = listItem.getAttribute('data-id');
+                    const guest = guestsList.find(g => g.id == guestId);
+                    
+                    if (guest) {
+                        $('#guest-name-display').innerHTML = `貴賓：<strong>${guest.name}</strong>`;
+                        $('#guest-status').value = guest.status || 'pending';
+                        $('#status-note').value = guest.notes || '';
+                        
+                        if (guest.status === 'represented') {
+                            $('#proxy-fields').style.display = 'block';
+                            $('#proxy-name').value = guest.proxyName || '';
+                            $('#proxy-title').value = guest.proxyTitle || '';
+                        } else {
+                            $('#proxy-fields').style.display = 'none';
+                        }
+                        
+                        openModal('#update-status-modal');
+                    }
+                }
+            });
+
+            // 狀態變更時處理代理人欄位顯示
+            $('#guest-status').addEventListener('change', () => {
+                const status = $('#guest-status').value;
+                $('#proxy-fields').style.display = status === 'represented' ? 'block' : 'none';
+            });
+
+            // 儲存狀態按鈕事件
+            $('#save-status-btn').addEventListener('click', () => {
+                const guestNameEl = $('#guest-name-display strong');
+                const guestName = guestNameEl ? guestNameEl.textContent : '';
+                const guest = guestsList.find(g => g.name === guestName);
+                
+                if (guest) {
+                    const newStatus = $('#guest-status').value;
+                    guest.status = newStatus;
+                    guest.notes = $('#status-note').value;
+                    
+                    if (newStatus === 'represented') {
+                        guest.proxyName = $('#proxy-name').value;
+                        guest.proxyTitle = $('#proxy-title').value;
+                    }
+                    
+                    guest.lastUpdatedAt = new Date().toISOString();
+                    guest.lastUpdatedBy = "當前用戶"; // 開發階段固定值
+                    
+                    // 在實際應用中，這裡會寫入 Firebase
+                    console.log("已更新貴賓狀態:", guest);
+                    
+                    // 更新界面
+                    updateGuestsList();
+                    closeModal('#update-status-modal');
+                }
+            });
+
+            // 編輯貴賓按鈕事件
+            document.addEventListener('click', (e) => {
+                const button = e.target.closest('[data-action="edit"]');
+                if (button) {
+                    const listItem = button.closest('.list-item');
+                    const guestId = listItem.getAttribute('data-id');
+                    const guest = guestsList.find(g => g.id == guestId);
+                    
+                    if (guest) {
+                        $('#edit-guest-name').value = guest.name || '';
+                        $('#edit-guest-title').value = guest.title || '';
+                        $('#edit-guest-organization').value = guest.organization || '';
+                        $('#edit-guest-category').value = guest.category || 'corporate';
+                        $('#edit-guest-priority').value = guest.priority || 5;
+                        
+                        openModal('#edit-guest-modal');
+                    }
+                }
+            });
+
+            // 儲存貴賓資料按鈕事件
+            $('#save-guest-btn').addEventListener('click', () => {
+                // 在實際應用中，這裡會寫入 Firebase
+                console.log("已儲存貴賓資料");
+                closeModal('#edit-guest-modal');
+            });
+
+            // 新增貴賓按鈕事件
+            $('#add-guest-btn').addEventListener('click', () => {
+                // 清空表單
+                $('#edit-guest-name').value = '';
+                $('#edit-guest-title').value = '';
+                $('#edit-guest-organization').value = '';
+                $('#edit-guest-category').value = 'corporate';
+                $('#edit-guest-priority').value = 5;
+                
+                openModal('#edit-guest-modal');
+            });
+
+            // 進入活動按鈕事件
+            $('#enter-event-btn').addEventListener('click', () => {
+                const eventId = $('#current-event').value;
+                console.log(`進入活動 ID: ${eventId}`);
+                navigateTo('guests');
+            });
+
+            // 搜尋貴賓事件
+            $('#search-guests').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                filterGuests(searchTerm);
+            });
+
+            // 狀態過濾器事件
+            $('#filter-status').addEventListener('change', () => {
+                filterGuests($('#search-guests').value.toLowerCase());
+            });
+
+            // 分類過濾器事件
+            $('#filter-category').addEventListener('change', () => {
+                filterGuests($('#search-guests').value.toLowerCase());
+            });
+
+            // 新增活動按鈕事件
+            $('#add-event-btn').addEventListener('click', () => {
+                console.log("新增活動");
+                // 在實際應用中，這裡會打開新增活動模態框
+            });
+
+            // 儲存設定按鈕事件
+            $('#save-settings-btn').addEventListener('click', () => {
+                const language = $('#language').value;
+                const theme = $('#theme').value;
+                
+                // 在實際應用中，這裡會儲存設定
+                console.log(`儲存設定 - 語言: ${language}, 主題: ${theme}`);
+                
+                // 切換主題示例
+                if (theme === 'dark') {
+                    applyDarkTheme();
+                } else {
+                    applyLightTheme();
+                }
+            });
+
+            // 初始化完成後載入示例數據
+            loadSampleData();
+        }
+
+        // ===== 載入示例數據 =====
+        function loadSampleData() {
+            // 示例貴賓數據
+            guestsList = [
+                {
+                    id: 1,
+                    name: "李大明",
+                    title: "執行長",
+                    organization: "台灣科技公司",
+                    category: "corporate",
+                    priority: 1,
+                    status: "checked-in",
+                    lastUpdatedAt: "2023-11-01T08:30:00Z",
+                    lastUpdatedBy: "工作人員A"
+                },
+                {
+                    id: 2,
+                    name: "王小華",
+                    title: "司長",
+                    organization: "政府經濟部",
+                    category: "government",
+                    priority: 2,
+                    status: "pending",
+                    lastUpdatedAt: "2023-11-01T08:00:00Z",
+                    lastUpdatedBy: "系統管理員"
+                },
+                {
+                    id: 3,
+                    name: "張美麗",
+                    title: "總編輯",
+                    organization: "財經日報",
+                    category: "media",
+                    priority: 3,
+                    status: "late",
+                    notes: "預計14:30到場",
+                    lastUpdatedAt: "2023-11-01T09:15:00Z",
+                    lastUpdatedBy: "工作人員B"
+                },
+                {
+                    id: 4,
+                    name: "陳志明",
+                    title: "總經理",
+                    organization: "創新科技有限公司",
+                    category: "partner",
+                    priority: 4,
+                    status: "represented",
+                    proxyName: "林小明",
+                    proxyTitle: "副總經理",
+                    notes: "因緊急會議無法出席",
+                    lastUpdatedAt: "2023-11-01T09:30:00Z",
+                    lastUpdatedBy: "工作人員A"
+                },
+                {
+                    id: 5,
+                    name: "林大方",
+                    title: "教授",
+                    organization: "台灣大學",
+                    category: "partner",
+                    priority: 5,
+                    status: "introduced",
+                    lastUpdatedAt: "2023-11-01T10:15:00Z",
+                    lastUpdatedBy: "主持人"
+                }
+            ];
             
-            // 開發模式：跳過登入
-            showLoading(false);
+            // 示例活動數據
+            eventsList = [
+                {
+                    id: 1,
+                    name: "2023 年度企業研討會",
+                    date: "2023-12-15T09:00:00Z",
+                    location: "國際會議中心",
+                    status: "upcoming"
+                },
+                {
+                    id: 2,
+                    name: "科技創新論壇",
+                    date: "2023-11-20T13:30:00Z",
+                    location: "科技大樓",
+                    status: "upcoming"
+                },
+                {
+                    id: 3,
+                    name: "產業合作交流會",
+                    date: "2023-10-05T14:00:00Z",
+                    location: "商業中心",
+                    status: "completed"
+                }
+            ];
             
-            // 設置臨時測試用戶
-            currentUser = {
-                uid: 'test-user-id',
-                email: 'test@example.com'
+            // 更新界面顯示
+            updateGuestsList();
+            updateEventsList();
+            updateDashboardStats();
+        }
+
+        // ===== 更新貴賓列表 =====
+        function updateGuestsList() {
+            const listElement = $('#guest-list');
+            listElement.innerHTML = ''; // 清空列表
+            
+            // 狀態文字映射
+            const statusText = {
+                'pending': '等待中',
+                'checked-in': '已簽到',
+                'introduced': '已介紹',
+                'late': '將晚到',
+                'absent': '不會出席',
+                'represented': '由代理出席'
             };
             
-            // 直接載入活動列表並進入主頁
-            loadEvents();
-            showPage('home');
+            guestsList.forEach(guest => {
+                const listItem = document.createElement('li');
+                listItem.className = 'list-item';
+                listItem.setAttribute('data-id', guest.id);
+                
+                // 建立標記代理人的額外顯示
+                let proxyInfo = '';
+                if (guest.status === 'represented' && guest.proxyName) {
+                    proxyInfo = `<div class="list-item-subtitle">代理人: ${guest.proxyName} (${guest.proxyTitle || ''})</div>`;
+                }
+                
+                // 建立備註顯示
+                let notesInfo = '';
+                if (guest.notes) {
+                    notesInfo = `<div class="list-item-notes">備註: ${guest.notes}</div>`;
+                }
+                
+                listItem.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${guest.name}</div>
+                        <div class="list-item-subtitle">${guest.organization} - ${guest.title}</div>
+                        <span class="status status-${guest.status}">${statusText[guest.status] || '未知'}</span>
+                        ${proxyInfo}
+                        ${notesInfo}
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
+                        <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                `;
+                
+                listElement.appendChild(listItem);
+            });
         }
-        
-        // 初始化應用程式
-        initApp();
+
+        // ===== 更新活動列表 =====
+        function updateEventsList() {
+            const listElement = $('#event-list');
+            listElement.innerHTML = ''; // 清空列表
+            
+            eventsList.forEach(event => {
+                const date = new Date(event.date);
+                const formattedDate = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                
+                const listItem = document.createElement('li');
+                listItem.className = 'list-item';
+                listItem.setAttribute('data-id', event.id);
+                
+                listItem.innerHTML = `
+                    <div>
+                        <div class="list-item-title">${event.name}</div>
+                        <div class="list-item-subtitle">${formattedDate} - ${event.location}</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
+                        <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                
+                listElement.appendChild(listItem);
+            });
+        }
+
+        // ===== 更新儀表板統計 =====
+        function updateDashboardStats() {
+            $('#total-guests').textContent = guestsList.length;
+            $('#checked-in-guests').textContent = guestsList.filter(g => g.status === 'checked-in' || g.status === 'introduced').length;
+            $('#introduced-guests').textContent = guestsList.filter(g => g.status === 'introduced').length;
+            $('#pending-guests').textContent = guestsList.filter(g => g.status === 'pending').length;
+        }
+
+        // ===== 過濾貴賓列表 =====
+        function filterGuests(searchTerm) {
+            const statusFilter = $('#filter-status').value;
+            const categoryFilter = $('#filter-category').value;
+            
+            const listItems = document.querySelectorAll('#guest-list .list-item');
+            
+            listItems.forEach(item => {
+                const guestId = item.getAttribute('data-id');
+                const guest = guestsList.find(g => g.id == guestId);
+                
+                if (!guest) return;
+                
+                // 檢查搜尋詞
+                const matchesSearch = searchTerm === '' || 
+                    guest.name.toLowerCase().includes(searchTerm) || 
+                    guest.organization.toLowerCase().includes(searchTerm) || 
+                    guest.title.toLowerCase().includes(searchTerm);
+                
+                // 檢查狀態過濾器
+                const matchesStatus = statusFilter === 'all' || guest.status === statusFilter;
+                
+                // 檢查分類過濾器
+                const matchesCategory = categoryFilter === 'all' || guest.category === categoryFilter;
+                
+                // 顯示或隱藏項目
+                if (matchesSearch && matchesStatus && matchesCategory) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // ===== 主題切換函數 =====
+        function applyDarkTheme() {
+            document.documentElement.style.setProperty('--color-bg', '#1a1a1a');
+            document.documentElement.style.setProperty('--color-text', '#f0f0f0');
+            document.documentElement.style.setProperty('--color-white', '#2c2c2c');
+            document.documentElement.style.setProperty('--color-border', '#444444');
+        }
+
+        function applyLightTheme() {
+            document.documentElement.style.setProperty('--color-bg', '#f8f9fa');
+            document.documentElement.style.setProperty('--color-text', '#333333');
+            document.documentElement.style.setProperty('--color-white', '#ffffff');
+            document.documentElement.style.setProperty('--color-border', '#dee2e6');
+        }
+
+        // ===== Firebase 相關函數 (開發階段未實際連接) =====
+        // 這些函數會在實際連接 Firebase 時實現
+        function firebaseInit() {
+            // 初始化 Firebase 連接
+        }
+
+        function firebaseAuthStateChanged() {
+            // 監聽認證狀態變化
+        }
+
+        function firebaseLogin(email, password) {
+            // 實現登入功能
+        }
+
+        function firebaseLogout() {
+            // 實現登出功能
+        }
+
+        function firebaseLoadGuests(eventId) {
+            // 從 Firebase 載入貴賓數據
+        }
+
+        function firebaseUpdateGuestStatus(guestId, status, data) {
+            // 更新貴賓狀態到 Firebase
+        }
+
+        function firebaseLoadEvents() {
+            // 從 Firebase 載入活動數據
+        }
+
+        // ===== 文檔載入完成後初始化應用 =====
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
