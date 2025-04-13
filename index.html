@@ -788,8 +788,18 @@
 
         // ===== 初始化應用 =====
         function initApp() {
-            // 初始化 Firebase
-            firebaseInit();
+            // 先確保Firebase已初始化
+            try {
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                database = firebase.database();
+                console.log("Firebase已初始化");
+            } catch (e) {
+                console.error("Firebase初始化失敗:", e);
+                if (e.code !== 'app/duplicate-app') {
+                    alert("系統初始化失敗，請稍後再試");
+                }
+            }
             
             // 註冊導航事件
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -840,20 +850,21 @@
 
             // 登入按鈕事件
             $('#login-btn').addEventListener('click', () => {
+                console.log("登入按鈕被點擊");
                 const email = $('#email').value;
                 const password = $('#password').value;
                 
-                // 驗證輸入
-                if (!email) {
-                    alert("請輸入電子郵箱");
+                // 開發階段處理 - 允許空白輸入直接進入系統
+                if (!email || !password) {
+                    console.log("開發模式: 跳過登入驗證");
+                    $('#login-page').classList.remove('active');
+                    $('#app-page').classList.add('active');
+                    loadSampleData();
                     return;
                 }
                 
-                if (!password) {
-                    alert("請輸入密碼");
-                    return;
-                }
-                
+                // 正常登入流程
+                console.log("嘗試登入:", email);
                 firebaseLogin(email, password);
             });
 
@@ -1408,48 +1419,29 @@
         }
 
         function firebaseLogin(email, password) {
+            console.log("開始執行登入函數");
             showLoading();
-            return auth.signInWithEmailAndPassword(email, password)
+            
+            auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
-                    // 登入成功
+                    console.log("登入成功");
                     currentUser = userCredential.user;
-                    console.log("用戶已登入:", currentUser.email);
+                    $('#login-page').classList.remove('active');
+                    $('#app-page').classList.add('active');
                     
-                    // 檢查用戶是否存在於數據庫中，如果不存在則創建
-                    return database.ref(`users/${currentUser.uid}`).once('value')
-                        .then((snapshot) => {
-                            if (!snapshot.exists()) {
-                                // 如果用戶不存在於數據庫中，創建新用戶資料
-                                return database.ref(`users/${currentUser.uid}`).set({
-                                    email: currentUser.email,
-                                    name: currentUser.displayName || currentUser.email,
-                                    role: 'staff', // 預設為工作人員角色
-                                    createdAt: new Date().toISOString(),
-                                    lastLogin: new Date().toISOString()
-                                });
-                            } else {
-                                // 更新最後登入時間
-                                return database.ref(`users/${currentUser.uid}`).update({
-                                    lastLogin: new Date().toISOString()
-                                });
-                            }
-                        });
+                    // 嘗試載入用戶資料
+                    try {
+                        loadUserData();
+                    } catch (e) {
+                        console.error("載入用戶資料失敗:", e);
+                    }
+                    
+                    // 載入活動資料
+                    loadEvents();
                 })
                 .catch((error) => {
                     console.error("登入失敗:", error);
-                    
-                    // 處理各種錯誤
-                    if (error.code === 'auth/user-not-found') {
-                        alert("用戶不存在，請檢查您的電子郵箱或註冊新帳號");
-                    } else if (error.code === 'auth/wrong-password') {
-                        alert("密碼錯誤，請重試");
-                    } else if (error.code === 'auth/invalid-email') {
-                        alert("電子郵箱格式不正確");
-                    } else if (error.code === 'auth/user-disabled') {
-                        alert("此帳號已被停用");
-                    } else {
-                        alert(`登入失敗: ${error.message}`);
-                    }
+                    alert(`登入失敗: ${error.message}`);
                 })
                 .finally(() => {
                     hideLoading();
@@ -1996,6 +1988,46 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // 確保DOM完全載入後執行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM已載入完成");
+            
+            // 手動重新綁定登入按鈕事件
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) {
+                console.log("找到登入按鈕，添加點擊事件");
+                loginBtn.addEventListener('click', function() {
+                    console.log("登入按鈕被點擊");
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    
+                    // 開發階段直接進入系統
+                    if (!email || !password) {
+                        console.log("開發模式: 跳過登入驗證");
+                        document.getElementById('login-page').classList.remove('active');
+                        document.getElementById('app-page').classList.add('active');
+                        // 載入示例數據
+                        if (typeof loadSampleData === 'function') {
+                            loadSampleData();
+                        }
+                        return;
+                    }
+                    
+                    // 真實登入流程
+                    if (typeof firebaseLogin === 'function') {
+                        firebaseLogin(email, password);
+                    } else {
+                        console.error("firebaseLogin函數未定義");
+                        alert("系統錯誤: 登入功能未正確載入");
+                    }
+                });
+            } else {
+                console.error("找不到登入按鈕");
+            }
+        });
+    </script>
 
 </body>
 </html>
