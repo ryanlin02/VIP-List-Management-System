@@ -800,6 +800,35 @@
                 });
             });
 
+            // 註冊用戶按鈕事件
+            $('#register-user-btn').addEventListener('click', () => {
+                // 開啟註冊模態框
+                openModal('#register-modal');
+            });
+
+            // 保存註冊按鈕事件
+            $('#save-register-btn').addEventListener('click', () => {
+                const email = $('#register-email').value;
+                const password = $('#register-password').value;
+                const confirmPassword = $('#confirm-password').value;
+                const name = $('#register-name').value;
+                const role = $('#register-role').value;
+                
+                // 驗證輸入
+                if (!email || !password || !confirmPassword || !name) {
+                    alert("請填寫所有必填欄位");
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert("兩次輸入的密碼不一致");
+                    return;
+                }
+                
+                // 調用註冊函數
+                registerUser(email, password, name, role);
+            });
+
             // 初始化模態框事件
             document.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -814,12 +843,14 @@
                 const email = $('#email').value;
                 const password = $('#password').value;
                 
-                // 開發階段可以使用固定的測試帳號
-                if (!email || !password) {
-                    // 開發階段直接進入系統
-                    $('#login-page').classList.remove('active');
-                    $('#app-page').classList.add('active');
-                    loadSampleData();
+                // 驗證輸入
+                if (!email) {
+                    alert("請輸入電子郵箱");
+                    return;
+                }
+                
+                if (!password) {
+                    alert("請輸入密碼");
                     return;
                 }
                 
@@ -1379,9 +1410,46 @@
         function firebaseLogin(email, password) {
             showLoading();
             return auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // 登入成功
+                    currentUser = userCredential.user;
+                    console.log("用戶已登入:", currentUser.email);
+                    
+                    // 檢查用戶是否存在於數據庫中，如果不存在則創建
+                    return database.ref(`users/${currentUser.uid}`).once('value')
+                        .then((snapshot) => {
+                            if (!snapshot.exists()) {
+                                // 如果用戶不存在於數據庫中，創建新用戶資料
+                                return database.ref(`users/${currentUser.uid}`).set({
+                                    email: currentUser.email,
+                                    name: currentUser.displayName || currentUser.email,
+                                    role: 'staff', // 預設為工作人員角色
+                                    createdAt: new Date().toISOString(),
+                                    lastLogin: new Date().toISOString()
+                                });
+                            } else {
+                                // 更新最後登入時間
+                                return database.ref(`users/${currentUser.uid}`).update({
+                                    lastLogin: new Date().toISOString()
+                                });
+                            }
+                        });
+                })
                 .catch((error) => {
                     console.error("登入失敗:", error);
-                    alert(`登入失敗: ${error.message}`);
+                    
+                    // 處理各種錯誤
+                    if (error.code === 'auth/user-not-found') {
+                        alert("用戶不存在，請檢查您的電子郵箱或註冊新帳號");
+                    } else if (error.code === 'auth/wrong-password') {
+                        alert("密碼錯誤，請重試");
+                    } else if (error.code === 'auth/invalid-email') {
+                        alert("電子郵箱格式不正確");
+                    } else if (error.code === 'auth/user-disabled') {
+                        alert("此帳號已被停用");
+                    } else {
+                        alert(`登入失敗: ${error.message}`);
+                    }
                 })
                 .finally(() => {
                     hideLoading();
@@ -1395,6 +1463,66 @@
                 });
         }
 
+        function registerUser(email, password, name, role) {
+            showLoading();
+            
+            // 檢查當前用戶是否有管理員權限
+            if (currentUser) {
+                database.ref(`users/${currentUser.uid}`).once('value')
+                    .then((snapshot) => {
+                        const userData = snapshot.val();
+                        if (!userData || userData.role !== 'organizer' && userData.role !== 'admin') {
+                            throw new Error("您沒有註冊新用戶的權限");
+                        }
+                        
+                        // 創建新用戶
+                        return auth.createUserWithEmailAndPassword(email, password);
+                    })
+                    .then((userCredential) => {
+                        const newUser = userCredential.user;
+                        
+                        // 儲存用戶資料到數據庫
+                        return database.ref(`users/${newUser.uid}`).set({
+                            email: email,
+                            name: name,
+                            role: role,
+                            createdBy: currentUser.uid,
+                            createdAt: new Date().toISOString(),
+                            lastLogin: new Date().toISOString()
+                        });
+                    })
+                    .then(() => {
+                        alert("用戶註冊成功");
+                        closeModal('#register-modal');
+                        
+                        // 清空表單
+                        $('#register-email').value = '';
+                        $('#register-password').value = '';
+                        $('#confirm-password').value = '';
+                        $('#register-name').value = '';
+                    })
+                    .catch((error) => {
+                        console.error("註冊失敗:", error);
+                        
+                        if (error.code === 'auth/email-already-in-use') {
+                            alert("此電子郵箱已被使用");
+                        } else if (error.code === 'auth/invalid-email') {
+                            alert("電子郵箱格式不正確");
+                        } else if (error.code === 'auth/weak-password') {
+                            alert("密碼強度不足，請使用更複雜的密碼");
+                        } else {
+                            alert(`註冊失敗: ${error.message}`);
+                        }
+                    })
+                    .finally(() => {
+                        hideLoading();
+                    });
+            } else {
+                alert("登入狀態失效，請重新登入");
+                hideLoading();
+            }
+        }
+
         function loadUserData() {
             const userId = currentUser.uid;
             return database.ref(`users/${userId}`).once('value')
@@ -1402,12 +1530,65 @@
                     const userData = snapshot.val();
                     if (userData) {
                         $('#user-name').textContent = userData.name || currentUser.email;
-                        $('#user-role').textContent = userData.role || '一般使用者';
+                        
+                        // 設置用戶角色並根據角色顯示不同功能
+                        $('#user-role').textContent = getUserRoleText(userData.role);
+                        
+                        // 根據用戶角色設置權限
+                        setupUserPermissions(userData.role);
+                    } else {
+                        // 如果沒有用戶資料，創建基本資料
+                        return database.ref(`users/${userId}`).set({
+                            email: currentUser.email,
+                            name: currentUser.displayName || currentUser.email,
+                            role: 'staff', // 預設為工作人員角色
+                            createdAt: new Date().toISOString(),
+                            lastLogin: new Date().toISOString()
+                        }).then(() => {
+                            $('#user-name').textContent = currentUser.displayName || currentUser.email;
+                            $('#user-role').textContent = '工作人員';
+                            setupUserPermissions('staff');
+                        });
                     }
                 })
                 .catch((error) => {
                     console.error("載入用戶資料失敗:", error);
                 });
+        }
+
+        // 將角色代碼轉換為顯示文字
+        function getUserRoleText(role) {
+            switch(role) {
+                case 'host':
+                    return '主持人';
+                case 'organizer':
+                    return '主辦單位';
+                case 'staff':
+                    return '工作人員';
+                case 'admin':
+                    return '系統管理員';
+                default:
+                    return '一般使用者';
+            }
+        }
+
+        // 根據用戶角色設置權限
+        function setupUserPermissions(role) {
+            // 隱藏註冊按鈕（只有管理員和主辦單位可以看到）
+            if (role === 'admin' || role === 'organizer') {
+                $('#register-user-btn').style.display = 'block';
+            } else {
+                $('#register-user-btn').style.display = 'none';
+            }
+            
+            // 其他權限設置...
+            // 例如：主持人可能只需要看到貴賓列表和更新狀態，不需要編輯活動
+            if (role === 'host') {
+                document.querySelectorAll('[data-action="edit-event"], [data-action="delete-event"]').forEach(btn => {
+                    btn.style.display = 'none';
+                });
+                $('#add-event-btn').style.display = 'none';
+            }
         }
 
         // ===== 活動管理函數 =====
@@ -1432,21 +1613,58 @@
                 });
         }
 
+        // 檢查用戶是否有特定權限
+        function checkPermission(requiredRole) {
+            return new Promise((resolve, reject) => {
+                if (!currentUser) {
+                    reject(new Error("請先登入"));
+                    return;
+                }
+                
+                database.ref(`users/${currentUser.uid}`).once('value')
+                    .then((snapshot) => {
+                        const userData = snapshot.val();
+                        if (!userData) {
+                            reject(new Error("找不到用戶資料"));
+                            return;
+                        }
+                        
+                        const userRole = userData.role;
+                        
+                        // 檢查用戶角色是否符合要求
+                        if (userRole === 'admin' || 
+                            userRole === requiredRole || 
+                            (requiredRole === 'staff' && (userRole === 'organizer' || userRole === 'host'))) {
+                            resolve(true);
+                        } else {
+                            reject(new Error("您沒有執行此操作的權限"));
+                        }
+                    })
+                    .catch(error => {
+                        reject(error);
+                    });
+            });
+        }
+
         function saveEvent(eventData) {
             showLoading();
             
-            const eventRef = eventData.id 
-                ? database.ref(`events/${eventData.id}`) 
-                : database.ref('events').push();
-            
-            if (!eventData.id) {
-                eventData.id = eventRef.key;
-            }
-            
-            eventData.createdBy = currentUser.uid;
-            eventData.updatedAt = new Date().toISOString();
-            
-            return eventRef.set(eventData)
+            // 首先檢查權限
+            return checkPermission('organizer')
+                .then(() => {
+                    const eventRef = eventData.id 
+                        ? database.ref(`events/${eventData.id}`) 
+                        : database.ref('events').push();
+                    
+                    if (!eventData.id) {
+                        eventData.id = eventRef.key;
+                    }
+                    
+                    eventData.createdBy = currentUser.uid;
+                    eventData.updatedAt = new Date().toISOString();
+                    
+                    return eventRef.set(eventData);
+                })
                 .then(() => {
                     console.log("活動儲存成功");
                     loadEvents();
@@ -1738,6 +1956,46 @@
             });
         });
     </script>
+
+    <!-- 註冊用戶模態框 -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">註冊新用戶</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="register-email">電子郵箱 *</label>
+                    <input type="email" id="register-email" placeholder="請輸入電子郵箱" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">密碼 *</label>
+                    <input type="password" id="register-password" placeholder="請輸入密碼" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">確認密碼 *</label>
+                    <input type="password" id="confirm-password" placeholder="請再次輸入密碼" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-name">姓名 *</label>
+                    <input type="text" id="register-name" placeholder="請輸入姓名" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-role">角色 *</label>
+                    <select id="register-role" required>
+                        <option value="host">主持人</option>
+                        <option value="organizer">主辦單位</option>
+                        <option value="staff" selected>工作人員</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary close-modal-btn">取消</button>
+                <button id="save-register-btn" class="success">註冊</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
