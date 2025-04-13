@@ -1099,6 +1099,7 @@
                 console.error('載入活動失敗:', error);
                 showNotification('載入活動列表失敗', 'error');
             } finally {
+                // 確保無論如何都關閉加載指示器
                 showLoading(false);
             }
         }
@@ -1850,6 +1851,12 @@
             
             showLoading(true);
             try {
+                // 在開發模式下，簡化日誌加載
+                const container = elements.logsList;
+                container.innerHTML = '<div class="card">開發模式：系統日誌已禁用</div>';
+                
+                // 如果您需要實際的日誌數據，請取消註釋以下代碼
+                /*
                 let query = db.collection('events').doc(currentEvent.id)
                     .collection('logs')
                     .orderBy('timestamp', 'desc');
@@ -1859,9 +1866,6 @@
                 }
                 
                 const snapshot = await query.limit(50).get();
-                
-                const container = elements.logsList;
-                container.innerHTML = '';
                 
                 if (snapshot.empty) {
                     container.innerHTML = '<div class="card">無操作記錄</div>';
@@ -1876,26 +1880,6 @@
                 snapshot.forEach(doc => {
                     logs.push({ id: doc.id, ...doc.data() });
                 });
-                
-                // 獲取所有用戶資訊
-                const userIds = [...new Set(logs.map(log => log.userId))];
-                const userPromises = userIds.map(async (userId) => {
-                    if (userCache[userId]) return;
-                    
-                    try {
-                        const userDoc = await db.collection('users').doc(userId).get();
-                        if (userDoc.exists) {
-                            userCache[userId] = userDoc.data().displayName || '未知用戶';
-                        } else {
-                            userCache[userId] = '未知用戶';
-                        }
-                    } catch (error) {
-                        console.error('獲取用戶資訊失敗:', error);
-                        userCache[userId] = '未知用戶';
-                    }
-                });
-                
-                await Promise.all(userPromises);
                 
                 // 渲染日誌
                 logs.forEach(log => {
@@ -1925,11 +1909,12 @@
                     
                     logEl.innerHTML = `
                         <div class="log-time">${timeString}</div>
-                        <div><span class="log-user">${userCache[log.userId] || '未知用戶'}</span> ${actionText}</div>
+                        <div><span class="log-user">開發者</span> ${actionText}</div>
                     `;
                     
                     container.appendChild(logEl);
                 });
+                */
             } catch (error) {
                 console.error('載入日誌失敗:', error);
                 showNotification('載入操作記錄失敗', 'error');
@@ -2119,6 +2104,20 @@
             // 更新頁面標題
             document.title = translations[language]['app.title'];
         }
+
+        // 全局錯誤處理，確保不會永久顯示加載指示器
+        window.addEventListener('error', function(event) {
+            console.error('全局錯誤:', event.error);
+            showLoading(false);
+            showNotification('系統發生錯誤，請重新整理頁面', 'error');
+        });
+
+        // 確保頁面載入完成後不顯示加載指示器
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                showLoading(false);
+            }, 1000); // 給予1秒緩衝時間
+        });
         
         // 11. 啟動應用程式
         // 在 initApp() 函數中修改，大約在第 1596 行附近，要暫時移除登入需求，我們需要修改 JavaScript 部分，讓系統默認顯示主頁而不是登入頁面。
