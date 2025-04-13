@@ -595,6 +595,11 @@
                         <p>角色：<span id="user-role">系統管理員</span></p>
                     </div>
                     <button id="logout-btn" class="danger">登出</button>
+
+                    <div class="form-group" style="margin-top: var(--spacing-md);">
+                        <button id="register-user-btn" class="secondary">用戶註冊（開發中）</button>
+                    </div>
+
                 </div>
             </div>
 
@@ -709,6 +714,26 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
+
+        // 啟用離線緩存
+        database.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === true) {
+                console.log('已連接到 Firebase');
+            } else {
+                console.log('已斷開與 Firebase 的連接');
+            }
+        });
+
+        // 設置離線持久化
+        database.enablePersistence()
+            .then(() => console.log('離線緩存已啟用'))
+            .catch((err) => {
+                if (err.code === 'failed-precondition') {
+                    console.log('多個標籤頁開啟，離線緩存只能在一個標籤頁中啟用');
+                } else if (err.code === 'unimplemented') {
+                    console.log('當前瀏覽器不支持離線緩存');
+                }
+            });
 
         // ===== 全域變數 =====
         let currentUser = null;
@@ -937,10 +962,8 @@
                 }
                 
                 currentEvent = eventId;
-                loadGuests(eventId)
-                    .then(() => {
-                        navigateTo('guests');
-                    });
+                setupGuestListeners(eventId); // 設置實時監聽
+                navigateTo('guests');
             });
 
             // 搜尋貴賓事件
@@ -1283,12 +1306,74 @@
                     $('#app-page').classList.add('active');
                     loadUserData();
                     loadEvents();
+
+                    // 添加實時數據監聽
+                    setupRealtimeListeners();
                 } else {
                     console.log("用戶未登入");
                     $('#app-page').classList.remove('active');
                     $('#login-page').classList.add('active');
+                    // 清除任何可能的實時監聽
+                    clearRealtimeListeners();
                 }
             });
+        }
+
+        // 建立實時數據監聽
+        let activeListeners = [];
+
+        function setupRealtimeListeners() {
+            clearRealtimeListeners(); // 清除舊的監聽
+            
+            // 當前活動變更時，重新設置監聽
+            $('#current-event').addEventListener('change', () => {
+                const eventId = $('#current-event').value;
+                if (eventId) {
+                    currentEvent = eventId;
+                    setupGuestListeners(eventId);
+                }
+            });
+        }
+
+        function setupGuestListeners(eventId) {
+            if (!eventId) return;
+            
+            // 清除舊的貴賓監聽
+            activeListeners.forEach(listener => {
+                if (listener.type === 'guests') {
+                    database.ref(listener.path).off('value', listener.callback);
+                }
+            });
+            
+            activeListeners = activeListeners.filter(listener => listener.type !== 'guests');
+            
+            // 設置新的貴賓監聽
+            const guestsRef = database.ref(`guests/${eventId}`);
+            const guestsCallback = guestsRef.on('value', (snapshot) => {
+                guestsList = [];
+                snapshot.forEach((childSnapshot) => {
+                    const guest = childSnapshot.val();
+                    guest.id = childSnapshot.key;
+                    guestsList.push(guest);
+                });
+                
+                updateGuestsList();
+                updateDashboardStats();
+            });
+            
+            activeListeners.push({
+                type: 'guests',
+                path: `guests/${eventId}`,
+                callback: guestsCallback
+            });
+        }
+
+        function clearRealtimeListeners() {
+            activeListeners.forEach(listener => {
+                database.ref(listener.path).off('value', listener.callback);
+            });
+            
+            activeListeners = [];
         }
 
         function firebaseLogin(email, password) {
@@ -1569,30 +1654,6 @@
                 });
         }
 
-        function firebaseAuthStateChanged() {
-            // 監聽認證狀態變化
-        }
-
-        function firebaseLogin(email, password) {
-            // 實現登入功能
-        }
-
-        function firebaseLogout() {
-            // 實現登出功能
-        }
-
-        function firebaseLoadGuests(eventId) {
-            // 從 Firebase 載入貴賓數據
-        }
-
-        function firebaseUpdateGuestStatus(guestId, status, data) {
-            // 更新貴賓狀態到 Firebase
-        }
-
-        function firebaseLoadEvents() {
-            // 從 Firebase 載入活動數據
-        }
-
         // ===== 文檔載入完成後初始化應用 =====
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
@@ -1617,6 +1678,66 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // 批量上傳按鈕事件處理
+        document.addEventListener('DOMContentLoaded', () => {
+            // 添加批量上傳按鈕到貴賓管理頁面
+            const addBatchUploadBtn = document.createElement('button');
+            addBatchUploadBtn.id = 'open-batch-upload-btn';
+            addBatchUploadBtn.textContent = '批量上傳';
+            addBatchUploadBtn.className = 'secondary';
+            addBatchUploadBtn.style.marginLeft = '8px';
+            $('#add-guest-btn').after(addBatchUploadBtn);
+        
+            // 開啟批量上傳模態框
+            $('#open-batch-upload-btn').addEventListener('click', () => {
+                openModal('#batch-upload-modal');
+            });
+        
+            // 處理批量上傳
+            $('#batch-upload-btn').addEventListener('click', () => {
+                const data = $('#batch-guests-data').value;
+                if (!data.trim()) {
+                    alert('請輸入貴賓資料');
+                    return;
+                }
+        
+                if (!currentEvent) {
+                    alert('請先選擇一個活動');
+                    closeModal('#batch-upload-modal');
+                    return;
+                }
+        
+                const lines = data.split('\n').filter(line => line.trim());
+                const guestsData = [];
+        
+                for (const line of lines) {
+                    const [name, title, organization, category, priority] = line.split(',').map(item => item.trim());
+                    if (name) {
+                        guestsData.push({
+                            name,
+                            title: title || '',
+                            organization: organization || '',
+                            category: category || 'corporate',
+                            priority: parseInt(priority) || 5,
+                            status: 'pending'
+                        });
+                    }
+                }
+        
+                if (guestsData.length > 0) {
+                    batchUploadGuests(currentEvent, guestsData)
+                        .then(() => {
+                            $('#batch-guests-data').value = '';
+                            closeModal('#batch-upload-modal');
+                        });
+                } else {
+                    alert('未能解析任何有效的貴賓資料');
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>
