@@ -2126,44 +2126,18 @@
             // 設置預設語言
             setLanguage('zh-TW');
             
-            // 添加超時處理，避免永久載入
-            const loadingTimeout = setTimeout(() => {
-                console.error('Firebase初始化超時');
-                showLoading(false);
-                showNotification('系統載入超時，請檢查網路連接或Firebase配置', 'error');
-                showPage('login');
-            }, 10000); // 10秒超時
+            // 開發模式：跳過登入
+            showLoading(false);
             
-            try {
-                // 檢查用戶登入狀態
-                auth.onAuthStateChanged(user => {
-                    // 清除超時計時器
-                    clearTimeout(loadingTimeout);
-                    showLoading(false);
-                    
-                    if (user) {
-                        currentUser = user;
-                        loadEvents();
-                        showPage('home');
-                    } else {
-                        currentUser = null;
-                        showPage('login');
-                    }
-                }, error => {
-                    // 處理身份驗證觀察者錯誤
-                    clearTimeout(loadingTimeout);
-                    console.error('Firebase身份驗證錯誤:', error);
-                    showLoading(false);
-                    showNotification('身份驗證服務連接失敗', 'error');
-                    showPage('login');
-                });
-            } catch (error) {
-                clearTimeout(loadingTimeout);
-                console.error('初始化失敗:', error);
-                showLoading(false);
-                showNotification('系統初始化失敗', 'error');
-                showPage('login');
-            }
+            // 設置臨時測試用戶
+            currentUser = {
+                uid: 'test-user-id',
+                email: 'test@example.com'
+            };
+            
+            // 直接載入活動列表並進入主頁
+            loadEvents();
+            showPage('home');
         }
         
         // 初始化應用程式
