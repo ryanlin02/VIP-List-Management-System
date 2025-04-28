@@ -3,2047 +3,1546 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIP 來賓管理系統</title>
+    <title>貴賓名單管理系統</title>
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- 使用 Font Awesome 圖標 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-auth-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
+    
+    <!-- Papa Parse (用於CSV檔案處理) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
     <style>
-        /* ===== 變數定義：用於主題與多語言支援 ===== */
+        /* ===== 全域變數 (方便未來主題切換) ===== */
         :root {
-            /* 顏色變數 */
-            --color-primary: #3498db;
-            --color-secondary: #2c3e50;
-            --color-success: #2ecc71;
-            --color-warning: #f39c12;
-            --color-danger: #e74c3c;
-            --color-info: #3498db;
-            --color-light: #ecf0f1;
-            --color-dark: #2c3e50;
-            --color-white: #ffffff;
-            --color-bg: #f8f9fa;
-            --color-text: #333333;
-            --color-border: #dee2e6;
+            /* 顏色 */
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --accent-color: #e74c3c;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --text-light: #666666;
+            --border-color: #dddddd;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #3498db;
             
-            /* 字體變數 */
-            --font-family: 'Arial', sans-serif;
-            --font-size-small: 0.875rem;
-            --font-size-normal: 1rem;
-            --font-size-large: 1.25rem;
-            --font-size-xlarge: 1.5rem;
+            /* 字體 */
+            --main-font: 'Microsoft JhengHei', sans-serif;
+            --heading-font: 'Microsoft JhengHei', sans-serif;
             
-            /* 間距變數 */
+            /* 間距 */
             --spacing-xs: 0.25rem;
             --spacing-sm: 0.5rem;
             --spacing-md: 1rem;
             --spacing-lg: 1.5rem;
             --spacing-xl: 2rem;
             
-            /* 圓角變數 */
+            /* 圓角 */
             --border-radius-sm: 0.25rem;
             --border-radius-md: 0.5rem;
             --border-radius-lg: 1rem;
             
-            /* 陰影變數 */
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+            /* 陰影 */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
             --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
         }
-
+        
         /* ===== 基本樣式 ===== */
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-family);
-            background-color: var(--color-bg);
-            color: var(--color-text);
-            line-height: 1.6;
             margin: 0;
             padding: 0;
         }
-
-        header {
-            background-color: var(--color-primary);
-            color: var(--color-white);
-            padding: var(--spacing-md);
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: var(--shadow-sm);
+        
+        body {
+            font-family: var(--main-font);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding-bottom: 5rem;
         }
-
-        main {
-            padding: var(--spacing-md);
-            max-width: 100%;
-            margin: 0 auto;
-            min-height: calc(100vh - 120px);
-        }
-
-        footer {
-            background-color: var(--color-secondary);
-            color: var(--color-white);
-            text-align: center;
-            padding: var(--spacing-sm);
-            font-size: var(--font-size-small);
-        }
-
-        /* ===== 導航樣式 ===== */
-        nav {
-            display: flex;
-            justify-content: space-around;
-            background-color: var(--color-secondary);
-            padding: var(--spacing-sm) 0;
-        }
-
-        nav a {
-            color: var(--color-white);
-            text-decoration: none;
-            padding: var(--spacing-sm) var(--spacing-md);
-            border-radius: var(--border-radius-sm);
-            transition: background-color 0.3s;
-            font-size: var(--font-size-small);
-        }
-
-        nav a:hover, nav a.active {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-
-        nav i {
-            margin-right: var(--spacing-xs);
-        }
-
-        /* ===== 卡片樣式 ===== */
-        .card {
-            background-color: var(--color-white);
-            border-radius: var(--border-radius-md);
-            padding: var(--spacing-md);
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--heading-font);
             margin-bottom: var(--spacing-md);
-            box-shadow: var(--shadow-sm);
+            font-weight: 600;
         }
-
-        .card-title {
-            font-size: var(--font-size-large);
-            margin-bottom: var(--spacing-sm);
-            color: var(--color-secondary);
-            border-bottom: 1px solid var(--color-border);
-            padding-bottom: var(--spacing-xs);
+        
+        .container {
+            max-width: 100%;
+            padding: var(--spacing-md);
+            margin: 0 auto;
         }
-
-        /* ===== 表單樣式 ===== */
+        
+        /* ===== 表單元素 ===== */
         .form-group {
             margin-bottom: var(--spacing-md);
         }
-
+        
         label {
             display: block;
             margin-bottom: var(--spacing-xs);
-            font-weight: bold;
+            font-weight: 600;
         }
-
+        
         input, select, textarea {
             width: 100%;
             padding: var(--spacing-sm);
-            border: 1px solid var(--color-border);
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius-sm);
-            font-size: var(--font-size-normal);
+            font-family: var(--main-font);
+            font-size: 1rem;
+            margin-bottom: var(--spacing-sm);
         }
-
+        
         button {
-            background-color: var(--color-primary);
-            color: var(--color-white);
+            background-color: var(--primary-color);
+            color: white;
             border: none;
-            padding: var(--spacing-sm) var(--spacing-md);
             border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
             cursor: pointer;
-            font-size: var(--font-size-normal);
+            font-size: 1rem;
             transition: background-color 0.3s;
         }
-
+        
         button:hover {
-            background-color: #2980b9;
+            background-color: var(--secondary-color);
         }
-
-        button.secondary {
-            background-color: var(--color-secondary);
+        
+        .btn-secondary {
+            background-color: var(--text-light);
         }
-
-        button.secondary:hover {
-            background-color: #1a252f;
+        
+        .btn-secondary:hover {
+            background-color: var(--text-color);
         }
-
-        button.success {
-            background-color: var(--color-success);
+        
+        .btn-danger {
+            background-color: var(--danger-color);
         }
-
-        button.warning {
-            background-color: var(--color-warning);
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
         }
-
-        button.danger {
-            background-color: var(--color-danger);
+        
+        .btn-success {
+            background-color: var(--success-color);
         }
-
-        /* ===== 列表樣式 ===== */
-        .list {
-            list-style: none;
-            padding: 0;
+        
+        .btn-success:hover {
+            background-color: #27ae60;
         }
-
-        .list-item {
-            padding: var(--spacing-sm);
-            border-bottom: 1px solid var(--color-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .list-item:last-child {
-            border-bottom: none;
-        }
-
-        .list-item-title {
-            font-weight: bold;
-        }
-
-        .list-item-subtitle {
-            font-size: var(--font-size-small);
-            color: #6c757d;
-        }
-
-        /* ===== 狀態標記 ===== */
-        .status {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-sm);
-            font-size: var(--font-size-small);
-            display: inline-block;
-        }
-
-        .status-pending {
-            background-color: #e2e3e5;
-            color: #383d41;
-        }
-
-        .status-checked-in {
-            background-color: var(--color-success);
-            color: white;
-        }
-
-        .status-introduced {
-            background-color: #17a2b8;
-            color: white;
-        }
-
-        .status-late {
-            background-color: var(--color-warning);
-            color: white;
-        }
-
-        .status-absent {
-            background-color: var(--color-danger);
-            color: white;
-        }
-
-        .status-represented {
-            background-color: #6f42c1;
-            color: white;
-        }
-
-        /* ===== 搜尋與過濾 ===== */
-        .search-bar {
-            display: flex;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .search-bar input {
-            flex-grow: 1;
-            margin-right: var(--spacing-sm);
-        }
-
-        .filter-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-sm);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .filter-group select {
-            flex-grow: 1;
-        }
-
-        /* ===== 操作按鈕 ===== */
-        .action-buttons {
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-
-        .action-button {
-            background-color: transparent;
-            border: none;
-            color: var(--color-secondary);
-            cursor: pointer;
-        }
-
-        .action-button:hover {
-            color: var(--color-primary);
-        }
-
-        /* ===== 模態框樣式 ===== */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
+        
+        .btn-block {
+            display: block;
             width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            margin-bottom: var(--spacing-sm);
         }
-
-        .modal-content {
-            background-color: var(--color-white);
-            margin: 15% auto;
-            padding: var(--spacing-md);
+        
+        /* ===== 卡片元素 ===== */
+        .card {
+            background-color: var(--card-background);
             border-radius: var(--border-radius-md);
-            max-width: 500px;
-            width: 90%;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            box-shadow: var(--shadow-sm);
+            padding: var(--spacing-md);
             margin-bottom: var(--spacing-md);
         }
-
-        .modal-title {
-            font-size: var(--font-size-large);
+        
+        /* ===== 導航欄 ===== */
+        .navbar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: var(--spacing-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: var(--font-size-xlarge);
-            cursor: pointer;
-            color: var(--color-secondary);
+        
+        .navbar h1 {
+            margin: 0;
+            font-size: 1.3rem;
         }
-
-        .modal-footer {
+        
+        /* ===== 底部導航 ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--card-background);
             display: flex;
-            justify-content: flex-end;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-md);
+            justify-content: space-around;
+            padding: var(--spacing-sm) 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
         }
-
-        /* ===== 頁面容器 ===== */
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.8rem;
+            padding: var(--spacing-xs);
+        }
+        
+        .nav-item.active {
+            color: var(--primary-color);
+        }
+        
+        .nav-icon {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        /* ===== 頁面區域 ===== */
         .page {
             display: none;
         }
-
+        
         .page.active {
             display: block;
         }
-
-        /* ===== 響應式設計 ===== */
-        @media (min-width: 768px) {
-            main {
-                max-width: 768px;
-            }
-
-            nav {
-                justify-content: center;
-                gap: var(--spacing-lg);
-            }
-
-            nav a {
-                font-size: var(--font-size-normal);
-            }
+        
+        /* ===== 活動列表 ===== */
+        .event-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-color);
         }
-
-        /* ===== 登錄頁面 ===== */
-        .login-container {
-            max-width: 400px;
-            margin: 10% auto;
+        
+        .event-info {
+            flex-grow: 1;
         }
-
-        .login-container .card {
-            padding: var(--spacing-lg);
+        
+        .event-title {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
         }
-
-        .login-title {
-            text-align: center;
-            margin-bottom: var(--spacing-lg);
-            color: var(--color-secondary);
+        
+        .event-date {
+            color: var(--text-light);
+            font-size: 0.9rem;
         }
-
-        .demo-notice {
-            text-align: center;
+        
+        .event-actions {
+            display: flex;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            margin-left: var(--spacing-sm);
+            font-size: 1.2rem;
+        }
+        
+        /* ===== 貴賓列表 ===== */
+        .vip-list {
             margin-top: var(--spacing-md);
-            font-size: var(--font-size-small);
-            color: #6c757d;
         }
-
-        /* 載入中指示器 */
-        .loading {
+        
+        .vip-item {
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: var(--spacing-sm);
+            background-color: var(--card-background);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+        
+        .vip-status {
+            position: absolute;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-sm);
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .status-attending {
+            background-color: var(--info-color);
+        }
+        
+        .status-not-attending {
+            background-color: var(--text-light);
+        }
+        
+        .status-arrived {
+            background-color: var(--success-color);
+        }
+        
+        .status-introduced {
+            background-color: var(--warning-color);
+        }
+        
+        .status-departed {
+            background-color: var(--danger-color);
+        }
+        
+        .vip-organization {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .vip-title {
+            color: var(--text-light);
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .vip-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .vip-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-sm);
+        }
+        
+        /* ===== 模態框 ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background-color: var(--card-background);
+            margin: 10% auto;
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius-md);
+            max-width: 90%;
+            position: relative;
+        }
+        
+        .close {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* ===== 搜尋欄 ===== */
+        .search-container {
+            margin-bottom: var(--spacing-md);
+            position: relative;
+        }
+        
+        .search-container input {
+            padding-right: 2.5rem;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: var(--spacing-sm);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            font-size: 1.2rem;
+        }
+        
+        /* ===== 狀態過濾 ===== */
+        .status-filter {
+            display: flex;
+            overflow-x: auto;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-xs);
+        }
+        
+        .status-filter-item {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            margin-right: var(--spacing-xs);
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        
+        .status-filter-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* ===== 貴賓檢視模式 ===== */
+        .view-mode-switch {
+            display: flex;
+            justify-content: center;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .view-mode-btn {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .view-mode-btn:first-child {
+            border-top-left-radius: var(--border-radius-sm);
+            border-bottom-left-radius: var(--border-radius-sm);
+        }
+        
+        .view-mode-btn:last-child {
+            border-top-right-radius: var(--border-radius-sm);
+            border-bottom-right-radius: var(--border-radius-sm);
+        }
+        
+        .view-mode-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* ===== 列表檢視模式 ===== */
+        .list-view .vip-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-sm);
+        }
+        
+        .list-view .vip-main-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .list-view .vip-organization {
+            margin-bottom: 0;
+        }
+        
+        .list-view .vip-name {
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+        
+        .list-view .vip-title {
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        
+        .list-view .vip-status {
+            position: static;
+            margin-left: var(--spacing-sm);
+        }
+        
+        /* ===== 加載動畫 ===== */
+        .loader {
             display: none;
             text-align: center;
-            padding: var(--spacing-md);
+            padding: var(--spacing-lg) 0;
         }
-
-        .spinner {
+        
+        .loader-spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
             border-radius: 50%;
-            border-left-color: var(--color-primary);
+            border-top: 4px solid var(--primary-color);
+            width: 30px;
+            height: 30px;
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
-
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* ===== 簡易吐司訊息 ===== */
+        .toast {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--text-color);
+            color: white;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius-sm);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* ===== 預設圖示 (使用文字圖示代替) ===== */
+        .icon {
+            font-family: sans-serif;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <!-- 登錄頁面 -->
-    <div id="login-page" class="page active">
-        <div class="login-container">
+    <!-- 頂部導航欄 -->
+    <div class="navbar">
+        <h1 id="pageTitle">貴賓名單管理系統</h1>
+    </div>
+    
+    <!-- 活動頁面 -->
+    <div id="eventsPage" class="page active">
+        <div class="container">
+            <div class="search-container">
+                <input type="text" id="eventSearch" placeholder="搜尋活動...">
+                <span class="search-icon">🔍</span>
+            </div>
+            
+            <button id="addEventBtn" class="btn-block">新增活動</button>
+            
+            <div id="eventsList"></div>
+            
+            <div id="eventsLoader" class="loader">
+                <div class="loader-spinner"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 貴賓名單頁面 -->
+    <div id="vipListPage" class="page">
+        <div class="container">
             <div class="card">
-                <h2 class="login-title">VIP 來賓管理系統</h2>
-                <div class="form-group">
-                    <label for="email">電子郵箱</label>
-                    <input type="email" id="email" placeholder="請輸入電子郵箱">
-                </div>
-                <div class="form-group">
-                    <label for="password">密碼</label>
-                    <input type="password" id="password" placeholder="請輸入密碼">
-                </div>
-                <button id="login-btn" class="btn-block">登入</button>
-                <p class="demo-notice">開發階段：點擊「登入」按鈕直接進入系統</p>
+                <h2 id="currentEventTitle">活動名稱</h2>
+                <p id="currentEventDate">日期：---</p>
+                <p id="currentEventLocation">地點：---</p>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="vipSearch" placeholder="搜尋貴賓...">
+                <span class="search-icon">🔍</span>
+            </div>
+            
+            <div class="view-mode-switch">
+                <button class="view-mode-btn active" data-mode="card">卡片檢視</button>
+                <button class="view-mode-btn" data-mode="list">列表檢視</button>
+            </div>
+            
+            <div class="status-filter">
+                <div class="status-filter-item active" data-status="all">全部</div>
+                <div class="status-filter-item" data-status="pending">未到場</div>
+                <div class="status-filter-item" data-status="attending">會出席</div>
+                <div class="status-filter-item" data-status="not-attending">不會出席</div>
+                <div class="status-filter-item" data-status="arrived">已到場</div>
+                <div class="status-filter-item" data-status="introduced">已介紹</div>
+                <div class="status-filter-item" data-status="departed">已離場</div>
+            </div>
+            
+            <div class="card">
+                <button id="addVipBtn" class="btn-block">新增貴賓</button>
+                <button id="importVipsBtn" class="btn-block">匯入貴賓名單</button>
+            </div>
+            
+            <div id="vipList" class="vip-list card-view"></div>
+            
+            <div id="vipLoader" class="loader">
+                <div class="loader-spinner"></div>
             </div>
         </div>
     </div>
-
-    <!-- 應用主頁面 -->
-    <div id="app-page" class="page">
-        <header>
-            <h1>VIP 來賓管理系統</h1>
-        </header>
-
-        <nav>
-            <a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> 儀表板</a>
-            <a href="#" class="nav-link" data-page="guests"><i class="fas fa-users"></i> 貴賓管理</a>
-            <a href="#" class="nav-link" data-page="events"><i class="fas fa-calendar-alt"></i> 活動管理</a>
-            <a href="#" class="nav-link" data-page="settings"><i class="fas fa-cog"></i> 設定</a>
-        </nav>
-
-        <main>
-            <!-- 儀表板頁面 -->
-            <div id="dashboard-page" class="page active">
-                <div class="card">
-                    <h2 class="card-title">儀表板</h2>
-                    <p>歡迎使用 VIP 來賓管理系統</p>
-                    <div class="form-group">
-                        <label for="current-event">選擇當前活動</label>
-                        <select id="current-event">
-                            <option value="1">2023 年度企業研討會</option>
-                            <option value="2">科技創新論壇</option>
-                            <option value="3">產業合作交流會</option>
-                        </select>
-                    </div>
-                    <button id="enter-event-btn">進入活動</button>
-                </div>
-
-                <div class="card">
-                    <h2 class="card-title">活動摘要</h2>
-                    <div class="stats">
-                        <div>總貴賓數量：<span id="total-guests">0</span></div>
-                        <div>已簽到：<span id="checked-in-guests">0</span></div>
-                        <div>已介紹：<span id="introduced-guests">0</span></div>
-                        <div>待處理：<span id="pending-guests">0</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 貴賓管理頁面 -->
-            <div id="guests-page" class="page">
-                <div class="card">
-                    <h2 class="card-title">貴賓管理</h2>
-                    
-                    <div class="search-bar">
-                        <input type="text" id="search-guests" placeholder="搜尋貴賓">
-                        <button id="add-guest-btn">新增</button>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <select id="filter-status">
-                            <option value="all">所有狀態</option>
-                            <option value="pending">等待中</option>
-                            <option value="checked-in">已簽到</option>
-                            <option value="introduced">已介紹</option>
-                            <option value="late">將晚到</option>
-                            <option value="absent">不會出席</option>
-                            <option value="represented">由代理出席</option>
-                        </select>
-                        
-                        <select id="filter-category">
-                            <option value="all">所有分類</option>
-                            <option value="government">政府單位</option>
-                            <option value="corporate">企業代表</option>
-                            <option value="media">媒體</option>
-                            <option value="partner">合作夥伴</option>
-                        </select>
-                    </div>
-                    
-                    <ul id="guest-list" class="list">
-                        <!-- 示例貴賓項目 -->
-                        <li class="list-item" data-id="1">
-                            <div>
-                                <div class="list-item-title">李大明</div>
-                                <div class="list-item-subtitle">台灣科技公司 - 執行長</div>
-                                <span class="status status-checked-in">已簽到</span>
-                            </div>
-                            <div class="action-buttons">
-                                <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
-                            </div>
-                        </li>
-                        <li class="list-item" data-id="2">
-                            <div>
-                                <div class="list-item-title">王小華</div>
-                                <div class="list-item-subtitle">政府經濟部 - 司長</div>
-                                <span class="status status-pending">等待中</span>
-                            </div>
-                            <div class="action-buttons">
-                                <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
-                                <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- 活動管理頁面 -->
-            <div id="events-page" class="page">
-                <div class="card">
-                    <h2 class="card-title">活動管理</h2>
-                    <button id="add-event-btn">新增活動</button>
-                    
-                    <ul id="event-list" class="list">
-                        <!-- 示例活動項目 -->
-                        <li class="list-item" data-id="1">
-                            <div>
-                                <div class="list-item-title">2023 年度企業研討會</div>
-                                <div class="list-item-subtitle">2023/12/15 - 國際會議中心</div>
-                            </div>
-                            <div class="action-buttons">
-                                <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
-                                <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </li>
-                        <li class="list-item" data-id="2">
-                            <div>
-                                <div class="list-item-title">科技創新論壇</div>
-                                <div class="list-item-subtitle">2023/11/20 - 科技大樓</div>
-                            </div>
-                            <div class="action-buttons">
-                                <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
-                                <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- 設定頁面 -->
-            <div id="settings-page" class="page">
-                <div class="card">
-                    <h2 class="card-title">系統設定</h2>
-                    
-                    <div class="form-group">
-                        <label for="language">語言</label>
-                        <select id="language">
-                            <option value="zh-TW">繁體中文</option>
-                            <option value="en">English</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="theme">主題</label>
-                        <select id="theme">
-                            <option value="light">明亮</option>
-                            <option value="dark">深色</option>
-                        </select>
-                    </div>
-                    
-                    <button id="save-settings-btn">儲存設定</button>
-                </div>
+    
+    <!-- 設定頁面 -->
+    <div id="settingsPage" class="page">
+        <div class="container">
+            <div class="card">
+                <h2>系統設定</h2>
+                <p>目前版本: 1.0.0</p>
+                <p>登入狀態: 公開模式（未登入）</p>
+                <p class="form-group">
+                    <small>登入功能尚未開放，未來將提供註冊和登入功能以保存您的資料。</small>
+                </p>
                 
-                <div class="card">
-                    <h2 class="card-title">帳號資訊</h2>
-                    <div class="user-info">
-                        <p>用戶名：<span id="user-name">管理員</span></p>
-                        <p>角色：<span id="user-role">系統管理員</span></p>
-                    </div>
-                    <button id="logout-btn" class="danger">登出</button>
-
-                    <div class="form-group" style="margin-top: var(--spacing-md);">
-                        <button id="register-user-btn" class="secondary">用戶註冊（開發中）</button>
-                    </div>
-
-                </div>
+                <h3>關於</h3>
+                <p>貴賓名單管理系統是為活動主持人設計的專業工具，協助您輕鬆管理各類活動的貴賓資訊與狀態。</p>
             </div>
-
-            <!-- 載入中指示器 -->
-            <div id="loading" class="loading">
-                <div class="spinner"></div>
-                <p>載入中...</p>
-            </div>
-        </main>
-
-        <footer>
-            <p>&copy; 2023 VIP 來賓管理系統 - 開發版本</p>
-        </footer>
+        </div>
     </div>
-
-    <!-- 更新貴賓狀態模態框 -->
-    <div id="update-status-modal" class="modal">
+    
+    <!-- 底部導航 -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active" data-page="eventsPage">
+            <span class="nav-icon">📅</span>
+            <span>活動</span>
+        </a>
+        <a href="#" class="nav-item" data-page="settingsPage">
+            <span class="nav-icon">⚙️</span>
+            <span>設定</span>
+        </a>
+    </div>
+    
+    <!-- 新增活動模態框 -->
+    <div id="addEventModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">更新貴賓狀態</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="guest-name-display">貴賓：<strong>李大明</strong></p>
+            <span class="close">&times;</span>
+            <h2>新增活動</h2>
+            <form id="addEventForm">
                 <div class="form-group">
-                    <label for="guest-status">狀態</label>
-                    <select id="guest-status">
-                        <option value="pending">等待中</option>
-                        <option value="checked-in">已簽到</option>
+                    <label for="eventTitle">活動名稱</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDate">活動日期</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventTime">活動時間</label>
+                    <input type="time" id="eventTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventLocation">活動地點</label>
+                    <input type="text" id="eventLocation" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription">活動描述</label>
+                    <textarea id="eventDescription" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-block">儲存</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 編輯活動模態框 -->
+    <div id="editEventModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>編輯活動</h2>
+            <form id="editEventForm">
+                <input type="hidden" id="editEventId">
+                <div class="form-group">
+                    <label for="editEventTitle">活動名稱</label>
+                    <input type="text" id="editEventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventDate">活動日期</label>
+                    <input type="date" id="editEventDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventTime">活動時間</label>
+                    <input type="time" id="editEventTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventLocation">活動地點</label>
+                    <input type="text" id="editEventLocation" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventDescription">活動描述</label>
+                    <textarea id="editEventDescription" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-block">更新</button>
+                <button type="button" id="deleteEventBtn" class="btn-block btn-danger">刪除活動</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 新增貴賓模態框 -->
+    <div id="addVipModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>新增貴賓</h2>
+            <form id="addVipForm">
+                <div class="form-group">
+                    <label for="vipOrganization">單位</label>
+                    <input type="text" id="vipOrganization" required>
+                </div>
+                <div class="form-group">
+                    <label for="vipTitle">稱謂/頭銜</label>
+                    <input type="text" id="vipTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="vipName">姓名</label>
+                    <input type="text" id="vipName" required>
+                </div>
+                <div class="form-group">
+                    <label for="vipStatus">狀態</label>
+                    <select id="vipStatus" required>
+                        <option value="pending">未到場</option>
+                        <option value="attending">會出席</option>
+                        <option value="not-attending">不會出席</option>
+                        <option value="arrived">已到場</option>
                         <option value="introduced">已介紹</option>
-                        <option value="late">將晚到</option>
-                        <option value="absent">不會出席</option>
-                        <option value="represented">由代理出席</option>
+                        <option value="departed">已離場</option>
                     </select>
                 </div>
-                <div id="proxy-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="proxy-name">代理人姓名</label>
-                        <input type="text" id="proxy-name">
-                    </div>
-                    <div class="form-group">
-                        <label for="proxy-title">代理人職稱</label>
-                        <input type="text" id="proxy-title">
-                    </div>
-                </div>
                 <div class="form-group">
-                    <label for="status-note">備註</label>
-                    <textarea id="status-note" rows="3"></textarea>
+                    <label for="vipNotes">備註</label>
+                    <textarea id="vipNotes" rows="2"></textarea>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="secondary close-modal-btn">取消</button>
-                <button id="save-status-btn" class="success">儲存</button>
-            </div>
+                <button type="submit" class="btn-block">儲存</button>
+            </form>
         </div>
     </div>
-
+    
     <!-- 編輯貴賓模態框 -->
-    <div id="edit-guest-modal" class="modal">
+    <div id="editVipModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">編輯貴賓資料</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
+            <span class="close">&times;</span>
+            <h2>編輯貴賓</h2>
+            <form id="editVipForm">
+                <input type="hidden" id="editVipId">
                 <div class="form-group">
-                    <label for="edit-guest-name">姓名</label>
-                    <input type="text" id="edit-guest-name">
+                    <label for="editVipOrganization">單位</label>
+                    <input type="text" id="editVipOrganization" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-guest-title">職稱</label>
-                    <input type="text" id="edit-guest-title">
+                    <label for="editVipTitle">稱謂/頭銜</label>
+                    <input type="text" id="editVipTitle" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-guest-organization">單位</label>
-                    <input type="text" id="edit-guest-organization">
+                    <label for="editVipName">姓名</label>
+                    <input type="text" id="editVipName" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-guest-category">分類</label>
-                    <select id="edit-guest-category">
-                        <option value="government">政府單位</option>
-                        <option value="corporate">企業代表</option>
-                        <option value="media">媒體</option>
-                        <option value="partner">合作夥伴</option>
+                    <label for="editVipStatus">狀態</label>
+                    <select id="editVipStatus" required>
+                        <option value="pending">未到場</option>
+                        <option value="attending">會出席</option>
+                        <option value="not-attending">不會出席</option>
+                        <option value="arrived">已到場</option>
+                        <option value="introduced">已介紹</option>
+                        <option value="departed">已離場</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="edit-guest-priority">優先順序</label>
-                    <input type="number" id="edit-guest-priority" min="1" max="10">
+                    <label for="editVipNotes">備註</label>
+                    <textarea id="editVipNotes" rows="2"></textarea>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="secondary close-modal-btn">取消</button>
-                <button id="save-guest-btn" class="success">儲存</button>
-            </div>
+                <button type="submit" class="btn-block">更新</button>
+                <button type="button" id="deleteVipBtn" class="btn-block btn-danger">刪除貴賓</button>
+            </form>
         </div>
     </div>
-
+    
+    <!-- 匯入貴賓模態框 -->
+    <div id="importVipsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>匯入貴賓名單</h2>
+            <form id="importVipsForm">
+                <div class="form-group">
+                    <label for="vipsCsvFile">上傳CSV檔案</label>
+                    <input type="file" id="vipsCsvFile" accept=".csv" required>
+                    <small>CSV檔案應包含以下欄位：單位、稱謂、姓名、狀態（選填）、備註（選填）</small>
+                </div>
+                <div class="form-group">
+                    <label>範例格式</label>
+                    <pre>單位,稱謂,姓名,狀態,備註
+臺北市政府,市長,王小明,pending,特別來賓
+台灣大學,校長,李大華,attending,重要來賓</pre>
+                </div>
+                <button type="submit" class="btn-block">匯入</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 吐司訊息 -->
+    <div id="toast" class="toast"></div>
+    
+    <!-- JavaScript -->
     <script>
-        // ===== Firebase 配置 =====
+        // Firebase 配置
         const firebaseConfig = {
-            apiKey: "AIzaSyDvL60JmAbzjDHeoIAduGyvmBsSQN5UElw",
+            apiKey: "AIzaSyBeY5Hyz1KFbotPTq9tZYA2kW6D4QnPpyw",
             authDomain: "vip-list-management-system.firebaseapp.com",
-            databaseURL: "https://vip-list-management-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+            databaseURL: "https://vip-list-management-system-default-rtdb.firebaseio.com",
             projectId: "vip-list-management-system",
-            storageBucket: "vip-list-management-system.firebasestorage.app",
-            messagingSenderId: "60059336895",
-            appId: "1:60059336895:web:230a6e30326aef4388460a",
-            measurementId: "G-9KWLGYMHE5"
+            storageBucket: "vip-list-management-system.appspot.com",
+            messagingSenderId: "337407906746",
+            appId: "1:337407906746:web:8d8d8f8d8d8f8d8d8d8f8d"
         };
         
         // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const database = firebase.database();
-
-        // 啟用離線緩存
-        database.ref('.info/connected').on('value', (snap) => {
-            if (snap.val() === true) {
-                console.log('已連接到 Firebase');
-            } else {
-                console.log('已斷開與 Firebase 的連接');
-            }
-        });
-
-        // 設置離線持久化
-        database.enablePersistence()
-            .then(() => console.log('離線緩存已啟用'))
-            .catch((err) => {
-                if (err.code === 'failed-precondition') {
-                    console.log('多個標籤頁開啟，離線緩存只能在一個標籤頁中啟用');
-                } else if (err.code === 'unimplemented') {
-                    console.log('當前瀏覽器不支持離線緩存');
-                }
-            });
-
-        // ===== 全域變數 =====
-        let currentUser = null;
-        let currentEvent = null;
-        let currentPage = 'dashboard';
-        let guestsList = [];
-        let eventsList = [];
-
-        // ===== DOM 元素選擇器 =====
-        const $ = (selector) => document.querySelector(selector);
         
-        // ===== 頁面導航函數 =====
-        function navigateTo(pageName) {
+        // DOM 元素
+        const pageTitle = document.getElementById('pageTitle');
+        const pages = document.querySelectorAll('.page');
+        const navItems = document.querySelectorAll('.nav-item');
+        const eventsList = document.getElementById('eventsList');
+        const eventsLoader = document.getElementById('eventsLoader');
+        const vipList = document.getElementById('vipList');
+        const vipLoader = document.getElementById('vipLoader');
+        const currentEventTitle = document.getElementById('currentEventTitle');
+        const currentEventDate = document.getElementById('currentEventDate');
+        const currentEventLocation = document.getElementById('currentEventLocation');
+        
+        // 模態框元素
+        const addEventModal = document.getElementById('addEventModal');
+        const editEventModal = document.getElementById('editEventModal');
+        const addVipModal = document.getElementById('addVipModal');
+        const editVipModal = document.getElementById('editVipModal');
+        const importVipsModal = document.getElementById('importVipsModal');
+        
+        // 全域變數
+        let currentEventId = null;
+        let viewMode = 'card';
+        let currentStatusFilter = 'all';
+        
+        // ===== 公用函數 =====
+        
+        // 顯示吐司訊息
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+        }
+        
+        // 格式化時間
+        function formatTime(timeString) {
+            return timeString;
+        }
+        
+        // 狀態文字轉換
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': '未到場',
+                'attending': '會出席',
+                'not-attending': '不會出席',
+                'arrived': '已到場',
+                'introduced': '已介紹',
+                'departed': '已離場'
+            };
+            
+            return statusMap[status] || '未知狀態';
+        }
+        
+        // ===== 頁面切換 =====
+        
+        // 切換頁面
+        function changePage(pageId) {
+            // 更新標題
+            switch(pageId) {
+                case 'eventsPage':
+                    pageTitle.textContent = '貴賓名單管理系統';
+                    break;
+                case 'vipListPage':
+                    pageTitle.textContent = '貴賓名單';
+                    break;
+                case 'settingsPage':
+                    pageTitle.textContent = '系統設定';
+                    break;
+            }
+            
             // 隱藏所有頁面
-            document.querySelectorAll('.page').forEach(page => {
+            pages.forEach(page => {
                 page.classList.remove('active');
             });
             
-            // 顯示所選頁面
-            $(`#${pageName}-page`).classList.add('active');
+            // 顯示目標頁面
+            document.getElementById(pageId).classList.add('active');
             
-            // 更新導航選中狀態
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            const activeNavLink = document.querySelector(`.nav-link[data-page="${pageName}"]`);
-            if (activeNavLink) {
-                activeNavLink.classList.add('active');
-            }
-            
-            currentPage = pageName;
-        }
-
-        // ===== 模態框函數 =====
-        function openModal(modalId) {
-            $(modalId).style.display = 'block';
-        }
-
-        function closeModal(modalId) {
-            $(modalId).style.display = 'none';
-        }
-
-        // ===== 顯示載入中指示器 =====
-        function showLoading() {
-            $('#loading').style.display = 'block';
-        }
-
-        function hideLoading() {
-            $('#loading').style.display = 'none';
-        }
-
-        // ===== 初始化應用 =====
-        function initApp() {
-            // 先確保Firebase已初始化
-            try {
-                firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                database = firebase.database();
-                console.log("Firebase已初始化");
-            } catch (e) {
-                console.error("Firebase初始化失敗:", e);
-                if (e.code !== 'app/duplicate-app') {
-                    alert("系統初始化失敗，請稍後再試");
-                }
-            }
-
-            // 註冊用戶按鈕事件
-            $('#register-user-btn').addEventListener('click', () => {
-                // 開啟註冊模態框
-                openModal('#register-modal');
-            });
-
-            // 保存註冊按鈕事件
-            $('#save-register-btn').addEventListener('click', () => {
-                const email = $('#register-email').value;
-                const password = $('#register-password').value;
-                const confirmPassword = $('#confirm-password').value;
-                const name = $('#register-name').value;
-                const role = $('#register-role').value;
-                
-                // 驗證輸入
-                if (!email || !password || !confirmPassword || !name) {
-                    alert("請填寫所有必填欄位");
-                    return;
-                }
-                
-                if (password !== confirmPassword) {
-                    alert("兩次輸入的密碼不一致");
-                    return;
-                }
-                
-                // 調用註冊函數
-                registerUser(email, password, name, role);
-            });
-
-            // 初始化模態框事件
-            document.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.modal').forEach(modal => {
-                        modal.style.display = 'none';
-                    });
-                });
-            });
-
-            // 登入按鈕事件
-            $('#login-btn').addEventListener('click', () => {
-                console.log("登入按鈕被點擊");
-                const email = $('#email').value;
-                const password = $('#password').value;
-                
-                // 開發階段處理 - 允許空白輸入直接進入系統
-                if (!email || !password) {
-                    console.log("開發模式: 跳過登入驗證");
-                    $('#login-page').classList.remove('active');
-                    $('#app-page').classList.add('active');
-                    loadSampleData();
-                    return;
-                }
-                
-                // 正常登入流程
-                console.log("嘗試登入:", email);
-                firebaseLogin(email, password);
-            });
-
-            // 登出按鈕事件
-            $('#logout-btn').addEventListener('click', () => {
-                firebaseLogout();
-            });
-
-            // 更新狀態按鈕事件
-            document.addEventListener('click', (e) => {
-                const button = e.target.closest('[data-action="update-status"]');
-                if (button) {
-                    const listItem = button.closest('.list-item');
-                    const guestId = listItem.getAttribute('data-id');
-                    const guest = guestsList.find(g => g.id == guestId);
-                    
-                    if (guest) {
-                        $('#guest-name-display').innerHTML = `貴賓：<strong>${guest.name}</strong>`;
-                        $('#guest-status').value = guest.status || 'pending';
-                        $('#status-note').value = guest.notes || '';
-                        
-                        if (guest.status === 'represented') {
-                            $('#proxy-fields').style.display = 'block';
-                            $('#proxy-name').value = guest.proxyName || '';
-                            $('#proxy-title').value = guest.proxyTitle || '';
-                        } else {
-                            $('#proxy-fields').style.display = 'none';
-                        }
-                        
-                        // 儲存當前編輯的貴賓ID
-                        $('#update-status-modal').setAttribute('data-guest-id', guestId);
-                        openModal('#update-status-modal');
-                    }
-                }
-            });
-
-            // 狀態變更時處理代理人欄位顯示
-            $('#guest-status').addEventListener('change', () => {
-                const status = $('#guest-status').value;
-                $('#proxy-fields').style.display = status === 'represented' ? 'block' : 'none';
-            });
-
-            // 儲存狀態按鈕事件
-            $('#save-status-btn').addEventListener('click', () => {
-                const guestId = $('#update-status-modal').getAttribute('data-guest-id');
-                const newStatus = $('#guest-status').value;
-                const notes = $('#status-note').value;
-                
-                const additionalData = {
-                    notes: notes
-                };
-                
-                if (newStatus === 'represented') {
-                    additionalData.proxyName = $('#proxy-name').value;
-                    additionalData.proxyTitle = $('#proxy-title').value;
-                }
-                
-                updateGuestStatus(guestId, newStatus, additionalData)
-                    .then(() => {
-                        closeModal('#update-status-modal');
-                    });
-            });
-
-            // 編輯貴賓按鈕事件
-            document.addEventListener('click', (e) => {
-                const button = e.target.closest('[data-action="edit"]');
-                if (button) {
-                    const listItem = button.closest('.list-item');
-                    const guestId = listItem.getAttribute('data-id');
-                    const guest = guestsList.find(g => g.id == guestId);
-                    
-                    if (guest) {
-                        $('#edit-guest-name').value = guest.name || '';
-                        $('#edit-guest-title').value = guest.title || '';
-                        $('#edit-guest-organization').value = guest.organization || '';
-                        $('#edit-guest-category').value = guest.category || 'corporate';
-                        $('#edit-guest-priority').value = guest.priority || 5;
-                        
-                        // 儲存當前編輯的貴賓ID
-                        $('#edit-guest-modal').setAttribute('data-guest-id', guestId);
-                        openModal('#edit-guest-modal');
-                    }
-                }
-            });
-
-            // 儲存貴賓資料按鈕事件
-            $('#save-guest-btn').addEventListener('click', () => {
-                const guestId = $('#edit-guest-modal').getAttribute('data-guest-id');
-                const guestData = {
-                    id: guestId,
-                    name: $('#edit-guest-name').value,
-                    title: $('#edit-guest-title').value,
-                    organization: $('#edit-guest-organization').value,
-                    category: $('#edit-guest-category').value,
-                    priority: parseInt($('#edit-guest-priority').value) || 5
-                };
-                
-                // 如果已有狀態，保留原狀態
-                if (guestId) {
-                    const existingGuest = guestsList.find(g => g.id == guestId);
-                    if (existingGuest) {
-                        guestData.status = existingGuest.status;
-                        if (existingGuest.notes) guestData.notes = existingGuest.notes;
-                        if (existingGuest.proxyName) guestData.proxyName = existingGuest.proxyName;
-                        if (existingGuest.proxyTitle) guestData.proxyTitle = existingGuest.proxyTitle;
-                    }
+            // 更新導航項目狀態
+            navItems.forEach(item => {
+                if (item.dataset.page === pageId) {
+                    item.classList.add('active');
                 } else {
-                    guestData.status = 'pending';
-                }
-                
-                saveGuest(guestData)
-                    .then(() => {
-                        closeModal('#edit-guest-modal');
-                    });
-            });
-
-            // 新增貴賓按鈕事件
-            $('#add-guest-btn').addEventListener('click', () => {
-                // 清空表單
-                $('#edit-guest-name').value = '';
-                $('#edit-guest-title').value = '';
-                $('#edit-guest-organization').value = '';
-                $('#edit-guest-category').value = 'corporate';
-                $('#edit-guest-priority').value = 5;
-                
-                // 清除ID
-                $('#edit-guest-modal').removeAttribute('data-guest-id');
-                openModal('#edit-guest-modal');
-            });
-
-            // 進入活動按鈕事件
-            $('#enter-event-btn').addEventListener('click', () => {
-                const eventId = $('#current-event').value;
-                if (!eventId) {
-                    alert("請選擇一個活動");
-                    return;
-                }
-                
-                currentEvent = eventId;
-                setupGuestListeners(eventId); // 設置實時監聽
-                navigateTo('guests');
-            });
-
-            // 搜尋貴賓事件
-            $('#search-guests').addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                filterGuests(searchTerm);
-            });
-
-            // 狀態過濾器事件
-            $('#filter-status').addEventListener('change', () => {
-                filterGuests($('#search-guests').value.toLowerCase());
-            });
-
-            // 分類過濾器事件
-            $('#filter-category').addEventListener('change', () => {
-                filterGuests($('#search-guests').value.toLowerCase());
-            });
-
-            // 新增活動按鈕事件
-            $('#add-event-btn').addEventListener('click', () => {
-                // 這裡需要一個新增活動的模態框
-                // 暫時用 alert 替代
-                const eventName = prompt("請輸入活動名稱:");
-                if (eventName) {
-                    const eventData = {
-                        name: eventName,
-                        date: new Date().toISOString(),
-                        location: "待定",
-                        status: "upcoming",
-                        createdAt: new Date().toISOString()
-                    };
-                    
-                    saveEvent(eventData);
+                    item.classList.remove('active');
                 }
             });
-
-            // 編輯活動按鈕事件
-            document.addEventListener('click', (e) => {
-                const button = e.target.closest('[data-action="edit-event"]');
-                if (button) {
-                    const listItem = button.closest('.list-item');
-                    const eventId = listItem.getAttribute('data-id');
-                    const event = eventsList.find(e => e.id == eventId);
-                    
-                    if (event) {
-                        const eventName = prompt("請輸入活動名稱:", event.name);
-                        if (eventName) {
-                            event.name = eventName;
-                            saveEvent(event);
-                        }
-                    }
-                }
+        }
+        
+        // 導航項目點擊事件
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                changePage(item.dataset.page);
             });
-
-            // 刪除活動按鈕事件
-            document.addEventListener('click', (e) => {
-                const button = e.target.closest('[data-action="delete-event"]');
-                if (button) {
-                    const listItem = button.closest('.list-item');
-                    const eventId = listItem.getAttribute('data-id');
-                    deleteEvent(eventId);
-                }
+        });
+        
+        // ===== 模態框操作 =====
+        
+        // 開啟模態框
+        function openModal(modal) {
+            modal.style.display = 'block';
+        }
+        
+        // 關閉模態框
+        function closeModal(modal) {
+            modal.style.display = 'none';
+        }
+        
+        // 關閉按鈕點擊事件
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', () => {
+                closeBtn.closest('.modal').style.display = 'none';
             });
-
-            // 儲存設定按鈕事件
-            $('#save-settings-btn').addEventListener('click', () => {
-                const language = $('#language').value;
-                const theme = $('#theme').value;
-                
-                // 儲存到 localStorage
-                localStorage.setItem('language', language);
-                localStorage.setItem('theme', theme);
-                
-                // 切換主題
-                if (theme === 'dark') {
-                    applyDarkTheme();
-                } else {
-                    applyLightTheme();
-                }
-                
-                alert("設定已儲存");
-            });
-
-            // 載入使用者設定
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                $('#theme').value = savedTheme;
-                if (savedTheme === 'dark') {
-                    applyDarkTheme();
-                }
+        });
+        
+        // 點擊模態框外部關閉
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
             }
-            
-            const savedLanguage = localStorage.getItem('language');
-            if (savedLanguage) {
-                $('#language').value = savedLanguage;
-            }
-        }
-
-        // 註冊導航事件
-        document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetPage = link.getAttribute('data-page');
-                    navigateTo(targetPage);
-                });
-            });
-
-        // ===== 載入示例數據 =====
-        function loadSampleData() {
-            // 示例貴賓數據
-            guestsList = [
-                {
-                    id: 1,
-                    name: "李大明",
-                    title: "執行長",
-                    organization: "台灣科技公司",
-                    category: "corporate",
-                    priority: 1,
-                    status: "checked-in",
-                    lastUpdatedAt: "2023-11-01T08:30:00Z",
-                    lastUpdatedBy: "工作人員A"
-                },
-                {
-                    id: 2,
-                    name: "王小華",
-                    title: "司長",
-                    organization: "政府經濟部",
-                    category: "government",
-                    priority: 2,
-                    status: "pending",
-                    lastUpdatedAt: "2023-11-01T08:00:00Z",
-                    lastUpdatedBy: "系統管理員"
-                },
-                {
-                    id: 3,
-                    name: "張美麗",
-                    title: "總編輯",
-                    organization: "財經日報",
-                    category: "media",
-                    priority: 3,
-                    status: "late",
-                    notes: "預計14:30到場",
-                    lastUpdatedAt: "2023-11-01T09:15:00Z",
-                    lastUpdatedBy: "工作人員B"
-                },
-                {
-                    id: 4,
-                    name: "陳志明",
-                    title: "總經理",
-                    organization: "創新科技有限公司",
-                    category: "partner",
-                    priority: 4,
-                    status: "represented",
-                    proxyName: "林小明",
-                    proxyTitle: "副總經理",
-                    notes: "因緊急會議無法出席",
-                    lastUpdatedAt: "2023-11-01T09:30:00Z",
-                    lastUpdatedBy: "工作人員A"
-                },
-                {
-                    id: 5,
-                    name: "林大方",
-                    title: "教授",
-                    organization: "台灣大學",
-                    category: "partner",
-                    priority: 5,
-                    status: "introduced",
-                    lastUpdatedAt: "2023-11-01T10:15:00Z",
-                    lastUpdatedBy: "主持人"
-                }
-            ];
-            
-            // 示例活動數據
-            eventsList = [
-                {
-                    id: 1,
-                    name: "2023 年度企業研討會",
-                    date: "2023-12-15T09:00:00Z",
-                    location: "國際會議中心",
-                    status: "upcoming"
-                },
-                {
-                    id: 2,
-                    name: "科技創新論壇",
-                    date: "2023-11-20T13:30:00Z",
-                    location: "科技大樓",
-                    status: "upcoming"
-                },
-                {
-                    id: 3,
-                    name: "產業合作交流會",
-                    date: "2023-10-05T14:00:00Z",
-                    location: "商業中心",
-                    status: "completed"
-                }
-            ];
-            
-            // 更新界面顯示
-            updateGuestsList();
-            updateEventsList();
-            updateDashboardStats();
-        }
-
-        // ===== 更新貴賓列表 =====
-        function updateGuestsList() {
-            const listElement = $('#guest-list');
-            listElement.innerHTML = ''; // 清空列表
-            
-            // 狀態文字映射
-            const statusText = {
-                'pending': '等待中',
-                'checked-in': '已簽到',
-                'introduced': '已介紹',
-                'late': '將晚到',
-                'absent': '不會出席',
-                'represented': '由代理出席'
-            };
-            
-            guestsList.forEach(guest => {
-                const listItem = document.createElement('li');
-                listItem.className = 'list-item';
-                listItem.setAttribute('data-id', guest.id);
-                
-                // 建立標記代理人的額外顯示
-                let proxyInfo = '';
-                if (guest.status === 'represented' && guest.proxyName) {
-                    proxyInfo = `<div class="list-item-subtitle">代理人: ${guest.proxyName} (${guest.proxyTitle || ''})</div>`;
-                }
-                
-                // 建立備註顯示
-                let notesInfo = '';
-                if (guest.notes) {
-                    notesInfo = `<div class="list-item-notes">備註: ${guest.notes}</div>`;
-                }
-                
-                listItem.innerHTML = `
-                    <div>
-                        <div class="list-item-title">${guest.name}</div>
-                        <div class="list-item-subtitle">${guest.organization} - ${guest.title}</div>
-                        <span class="status status-${guest.status}">${statusText[guest.status] || '未知'}</span>
-                        ${proxyInfo}
-                        ${notesInfo}
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-button" data-action="edit"><i class="fas fa-edit"></i></button>
-                        <button class="action-button" data-action="update-status"><i class="fas fa-sync-alt"></i></button>
-                    </div>
-                `;
-                
-                listElement.appendChild(listItem);
-            });
-        }
-
-        // ===== 更新活動列表 =====
-        function updateEventsList() {
-            const listElement = $('#event-list');
-            listElement.innerHTML = ''; // 清空列表
-            
-            eventsList.forEach(event => {
-                const date = new Date(event.date);
-                const formattedDate = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
-                
-                const listItem = document.createElement('li');
-                listItem.className = 'list-item';
-                listItem.setAttribute('data-id', event.id);
-                
-                listItem.innerHTML = `
-                    <div>
-                        <div class="list-item-title">${event.name}</div>
-                        <div class="list-item-subtitle">${formattedDate} - ${event.location}</div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-button" data-action="edit-event"><i class="fas fa-edit"></i></button>
-                        <button class="action-button" data-action="delete-event"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                
-                listElement.appendChild(listItem);
-            });
-        }
-
-        // ===== 更新儀表板統計 =====
-        function updateDashboardStats() {
-            $('#total-guests').textContent = guestsList.length;
-            $('#checked-in-guests').textContent = guestsList.filter(g => g.status === 'checked-in' || g.status === 'introduced').length;
-            $('#introduced-guests').textContent = guestsList.filter(g => g.status === 'introduced').length;
-            $('#pending-guests').textContent = guestsList.filter(g => g.status === 'pending').length;
-        }
-
-        // ===== 過濾貴賓列表 =====
-        function filterGuests(searchTerm) {
-            const statusFilter = $('#filter-status').value;
-            const categoryFilter = $('#filter-category').value;
-            
-            const listItems = document.querySelectorAll('#guest-list .list-item');
-            
-            listItems.forEach(item => {
-                const guestId = item.getAttribute('data-id');
-                const guest = guestsList.find(g => g.id == guestId);
-                
-                if (!guest) return;
-                
-                // 檢查搜尋詞
-                const matchesSearch = searchTerm === '' || 
-                    guest.name.toLowerCase().includes(searchTerm) || 
-                    guest.organization.toLowerCase().includes(searchTerm) || 
-                    guest.title.toLowerCase().includes(searchTerm);
-                
-                // 檢查狀態過濾器
-                const matchesStatus = statusFilter === 'all' || guest.status === statusFilter;
-                
-                // 檢查分類過濾器
-                const matchesCategory = categoryFilter === 'all' || guest.category === categoryFilter;
-                
-                // 顯示或隱藏項目
-                if (matchesSearch && matchesStatus && matchesCategory) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        // ===== 主題切換函數 =====
-        function applyDarkTheme() {
-            document.documentElement.style.setProperty('--color-bg', '#1a1a1a');
-            document.documentElement.style.setProperty('--color-text', '#f0f0f0');
-            document.documentElement.style.setProperty('--color-white', '#2c2c2c');
-            document.documentElement.style.setProperty('--color-border', '#444444');
-        }
-
-        function applyLightTheme() {
-            document.documentElement.style.setProperty('--color-bg', '#f8f9fa');
-            document.documentElement.style.setProperty('--color-text', '#333333');
-            document.documentElement.style.setProperty('--color-white', '#ffffff');
-            document.documentElement.style.setProperty('--color-border', '#dee2e6');
-        }
-
-        // ===== Firebase 相關函數 (開發階段未實際連接) =====
-        // 這些函數會在實際連接 Firebase 時實現
-        // ===== Firebase 相關函數 =====
-        function firebaseInit() {
-            // 監聽認證狀態
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    currentUser = user;
-                    console.log("用戶已登入:", user.email);
-                    $('#login-page').classList.remove('active');
-                    $('#app-page').classList.add('active');
-                    loadUserData();
-                    loadEvents();
-
-                    // 添加實時數據監聽
-                    setupRealtimeListeners();
-                } else {
-                    console.log("用戶未登入");
-                    $('#app-page').classList.remove('active');
-                    $('#login-page').classList.add('active');
-                    // 清除任何可能的實時監聽
-                    clearRealtimeListeners();
-                }
-            });
-        }
-
-        // 建立實時數據監聽
-        let activeListeners = [];
-
-        function setupRealtimeListeners() {
-            clearRealtimeListeners(); // 清除舊的監聽
-            
-            // 當前活動變更時，重新設置監聽
-            $('#current-event').addEventListener('change', () => {
-                const eventId = $('#current-event').value;
-                if (eventId) {
-                    currentEvent = eventId;
-                    setupGuestListeners(eventId);
-                }
-            });
-        }
-
-        function setupGuestListeners(eventId) {
-            if (!eventId) return;
-            
-            // 清除舊的貴賓監聽
-            activeListeners.forEach(listener => {
-                if (listener.type === 'guests') {
-                    database.ref(listener.path).off('value', listener.callback);
-                }
-            });
-            
-            activeListeners = activeListeners.filter(listener => listener.type !== 'guests');
-            
-            // 設置新的貴賓監聽
-            const guestsRef = database.ref(`guests/${eventId}`);
-            const guestsCallback = guestsRef.on('value', (snapshot) => {
-                guestsList = [];
-                snapshot.forEach((childSnapshot) => {
-                    const guest = childSnapshot.val();
-                    guest.id = childSnapshot.key;
-                    guestsList.push(guest);
-                });
-                
-                updateGuestsList();
-                updateDashboardStats();
-            });
-            
-            activeListeners.push({
-                type: 'guests',
-                path: `guests/${eventId}`,
-                callback: guestsCallback
-            });
-        }
-
-        function clearRealtimeListeners() {
-            activeListeners.forEach(listener => {
-                database.ref(listener.path).off('value', listener.callback);
-            });
-            
-            activeListeners = [];
-        }
-
-        function firebaseLogin(email, password) {
-            console.log("開始執行登入函數");
-            showLoading();
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    console.log("登入成功");
-                    currentUser = userCredential.user;
-                    $('#login-page').classList.remove('active');
-                    $('#app-page').classList.add('active');
-                    
-                    // 嘗試載入用戶資料
-                    try {
-                        loadUserData();
-                    } catch (e) {
-                        console.error("載入用戶資料失敗:", e);
-                    }
-                    
-                    // 載入活動資料
-                    loadEvents();
-                })
-                .catch((error) => {
-                    console.error("登入失敗:", error);
-                    alert(`登入失敗: ${error.message}`);
-                })
-                .finally(() => {
-                    hideLoading();
-                });
-        }
-
-        function firebaseLogout() {
-            return auth.signOut()
-                .catch((error) => {
-                    console.error("登出失敗:", error);
-                });
-        }
-
-        function registerUser(email, password, name, role) {
-            showLoading();
-            
-            // 檢查當前用戶是否有管理員權限
-            if (currentUser) {
-                database.ref(`users/${currentUser.uid}`).once('value')
-                    .then((snapshot) => {
-                        const userData = snapshot.val();
-                        if (!userData || userData.role !== 'organizer' && userData.role !== 'admin') {
-                            throw new Error("您沒有註冊新用戶的權限");
-                        }
-                        
-                        // 創建新用戶
-                        return auth.createUserWithEmailAndPassword(email, password);
-                    })
-                    .then((userCredential) => {
-                        const newUser = userCredential.user;
-                        
-                        // 儲存用戶資料到數據庫
-                        return database.ref(`users/${newUser.uid}`).set({
-                            email: email,
-                            name: name,
-                            role: role,
-                            createdBy: currentUser.uid,
-                            createdAt: new Date().toISOString(),
-                            lastLogin: new Date().toISOString()
-                        });
-                    })
-                    .then(() => {
-                        alert("用戶註冊成功");
-                        closeModal('#register-modal');
-                        
-                        // 清空表單
-                        $('#register-email').value = '';
-                        $('#register-password').value = '';
-                        $('#confirm-password').value = '';
-                        $('#register-name').value = '';
-                    })
-                    .catch((error) => {
-                        console.error("註冊失敗:", error);
-                        
-                        if (error.code === 'auth/email-already-in-use') {
-                            alert("此電子郵箱已被使用");
-                        } else if (error.code === 'auth/invalid-email') {
-                            alert("電子郵箱格式不正確");
-                        } else if (error.code === 'auth/weak-password') {
-                            alert("密碼強度不足，請使用更複雜的密碼");
-                        } else {
-                            alert(`註冊失敗: ${error.message}`);
-                        }
-                    })
-                    .finally(() => {
-                        hideLoading();
-                    });
-            } else {
-                alert("登入狀態失效，請重新登入");
-                hideLoading();
-            }
-        }
-
-        function loadUserData() {
-            const userId = currentUser.uid;
-            return database.ref(`users/${userId}`).once('value')
-                .then((snapshot) => {
-                    const userData = snapshot.val();
-                    if (userData) {
-                        $('#user-name').textContent = userData.name || currentUser.email;
-                        
-                        // 設置用戶角色並根據角色顯示不同功能
-                        $('#user-role').textContent = getUserRoleText(userData.role);
-                        
-                        // 根據用戶角色設置權限
-                        setupUserPermissions(userData.role);
-                    } else {
-                        // 如果沒有用戶資料，創建基本資料
-                        return database.ref(`users/${userId}`).set({
-                            email: currentUser.email,
-                            name: currentUser.displayName || currentUser.email,
-                            role: 'staff', // 預設為工作人員角色
-                            createdAt: new Date().toISOString(),
-                            lastLogin: new Date().toISOString()
-                        }).then(() => {
-                            $('#user-name').textContent = currentUser.displayName || currentUser.email;
-                            $('#user-role').textContent = '工作人員';
-                            setupUserPermissions('staff');
-                        });
-                    }
-                })
-                .catch((error) => {
-                    console.error("載入用戶資料失敗:", error);
-                });
-        }
-
-        // 將角色代碼轉換為顯示文字
-        function getUserRoleText(role) {
-            switch(role) {
-                case 'host':
-                    return '主持人';
-                case 'organizer':
-                    return '主辦單位';
-                case 'staff':
-                    return '工作人員';
-                case 'admin':
-                    return '系統管理員';
-                default:
-                    return '一般使用者';
-            }
-        }
-
-        // 根據用戶角色設置權限
-        function setupUserPermissions(role) {
-            // 隱藏註冊按鈕（只有管理員和主辦單位可以看到）
-            if (role === 'admin' || role === 'organizer') {
-                $('#register-user-btn').style.display = 'block';
-            } else {
-                $('#register-user-btn').style.display = 'none';
-            }
-            
-            // 其他權限設置...
-            // 例如：主持人可能只需要看到貴賓列表和更新狀態，不需要編輯活動
-            if (role === 'host') {
-                document.querySelectorAll('[data-action="edit-event"], [data-action="delete-event"]').forEach(btn => {
-                    btn.style.display = 'none';
-                });
-                $('#add-event-btn').style.display = 'none';
-            }
-        }
-
-        // ===== 活動管理函數 =====
+        });
+        
+        // ===== 活動管理 =====
+        
+        // 加載活動列表
         function loadEvents() {
-            showLoading();
-            return database.ref('events').once('value')
-                .then((snapshot) => {
-                    eventsList = [];
-                    snapshot.forEach((childSnapshot) => {
-                        const event = childSnapshot.val();
-                        event.id = childSnapshot.key;
-                        eventsList.push(event);
-                    });
-                    
-                    updateEventsList();
-                    updateEventSelector();
-                    hideLoading();
-                })
-                .catch((error) => {
-                    console.error("載入活動失敗:", error);
-                    hideLoading();
-                });
-        }
-
-        // 檢查用戶是否有特定權限
-        function checkPermission(requiredRole) {
-            return new Promise((resolve, reject) => {
-                if (!currentUser) {
-                    reject(new Error("請先登入"));
+            eventsLoader.style.display = 'block';
+            eventsList.innerHTML = '';
+            
+            const eventsRef = database.ref('events');
+            
+            eventsRef.on('value', (snapshot) => {
+                eventsLoader.style.display = 'none';
+                
+                if (!snapshot.exists()) {
+                    eventsList.innerHTML = '<div class="card"><p>尚無活動，請點擊「新增活動」按鈕創建您的第一個活動。</p></div>';
                     return;
                 }
                 
-                database.ref(`users/${currentUser.uid}`).once('value')
-                    .then((snapshot) => {
-                        const userData = snapshot.val();
-                        if (!userData) {
-                            reject(new Error("找不到用戶資料"));
-                            return;
-                        }
-                        
-                        const userRole = userData.role;
-                        
-                        // 檢查用戶角色是否符合要求
-                        if (userRole === 'admin' || 
-                            userRole === requiredRole || 
-                            (requiredRole === 'staff' && (userRole === 'organizer' || userRole === 'host'))) {
-                            resolve(true);
-                        } else {
-                            reject(new Error("您沒有執行此操作的權限"));
-                        }
-                    })
-                    .catch(error => {
-                        reject(error);
-                    });
+                const events = [];
+                snapshot.forEach((childSnapshot) => {
+                    const event = {
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    };
+                    events.push(event);
+                });
+                
+                // 依日期排序（最近的在前）
+                events.sort((a, b) => {
+                    return new Date(b.date + ' ' + b.time) - new Date(a.date + ' ' + a.time);
+                });
+                
+                renderEvents(events);
+            }, (error) => {
+                eventsLoader.style.display = 'none';
+                showToast('讀取活動列表失敗: ' + error.message);
+                console.error('讀取活動列表失敗:', error);
             });
         }
-
-        function saveEvent(eventData) {
-            showLoading();
+        
+        // 渲染活動列表
+        function renderEvents(events) {
+            eventsList.innerHTML = '';
             
-            // 首先檢查權限
-            return checkPermission('organizer')
+            events.forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.className = 'card event-item';
+                eventElement.innerHTML = `
+                    <div class="event-info">
+                        <div class="event-title">${event.title}</div>
+                        <div class="event-date">${formatDate(event.date)} ${formatTime(event.time)} | ${event.location}</div>
+                    </div>
+                    <div class="event-actions">
+                        <button class="action-btn edit-event" data-id="${event.id}">✏️</button>
+                        <button class="action-btn view-vips" data-id="${event.id}">👥</button>
+                    </div>
+                `;
+                
+                eventsList.appendChild(eventElement);
+            });
+            
+            // 綁定編輯事件按鈕
+            document.querySelectorAll('.edit-event').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openEditEventModal(btn.dataset.id);
+                });
+            });
+            
+            // 綁定查看貴賓按鈕
+            document.querySelectorAll('.view-vips').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openVipList(btn.dataset.id);
+                });
+            });
+        }
+        
+        // 新增活動
+        function addEvent(eventData) {
+            const eventsRef = database.ref('events');
+            
+            eventsRef.push(eventData)
                 .then(() => {
-                    const eventRef = eventData.id 
-                        ? database.ref(`events/${eventData.id}`) 
-                        : database.ref('events').push();
-                    
-                    if (!eventData.id) {
-                        eventData.id = eventRef.key;
-                    }
-                    
-                    eventData.createdBy = currentUser.uid;
-                    eventData.updatedAt = new Date().toISOString();
-                    
-                    return eventRef.set(eventData);
-                })
-                .then(() => {
-                    console.log("活動儲存成功");
-                    loadEvents();
+                    showToast('活動新增成功');
+                    closeModal(addEventModal);
+                    document.getElementById('addEventForm').reset();
                 })
                 .catch((error) => {
-                    console.error("活動儲存失敗:", error);
-                    alert(`儲存活動失敗: ${error.message}`);
-                })
-                .finally(() => {
-                    hideLoading();
+                    showToast('活動新增失敗: ' + error.message);
+                    console.error('活動新增失敗:', error);
                 });
         }
-
+        
+        // 更新活動
+        function updateEvent(eventId, eventData) {
+            const eventRef = database.ref(`events/${eventId}`);
+            
+            eventRef.update(eventData)
+                .then(() => {
+                    showToast('活動更新成功');
+                    closeModal(editEventModal);
+                })
+                .catch((error) => {
+                    showToast('活動更新失敗: ' + error.message);
+                    console.error('活動更新失敗:', error);
+                });
+        }
+        
+        // 刪除活動
         function deleteEvent(eventId) {
-            if (confirm("確定要刪除此活動嗎？此操作無法撤銷，且會刪除所有相關的貴賓資料！")) {
-                showLoading();
+            if (confirm('確定要刪除此活動嗎？此操作將同時刪除所有相關的貴賓資料。')) {
+                const eventRef = database.ref(`events/${eventId}`);
+                const vipsRef = database.ref(`vips/${eventId}`);
                 
-                // 首先刪除貴賓資料
-                database.ref(`guests/${eventId}`).remove()
-                    .then(() => {
-                        // 然後刪除活動本身
-                        return database.ref(`events/${eventId}`).remove();
-                    })
-                    .then(() => {
-                        console.log("活動刪除成功");
-                        loadEvents();
-                    })
-                    .catch((error) => {
-                        console.error("活動刪除失敗:", error);
-                        alert(`刪除活動失敗: ${error.message}`);
-                    })
-                    .finally(() => {
-                        hideLoading();
-                    });
+                // 同時刪除活動和相關貴賓
+                Promise.all([
+                    eventRef.remove(),
+                    vipsRef.remove()
+                ])
+                .then(() => {
+                    showToast('活動刪除成功');
+                    closeModal(editEventModal);
+                })
+                .catch((error) => {
+                    showToast('活動刪除失敗: ' + error.message);
+                    console.error('活動刪除失敗:', error);
+                });
             }
         }
-
-        // 更新活動選擇器
-        function updateEventSelector() {
-            const selector = $('#current-event');
-            selector.innerHTML = '';
+        
+        // 開啟編輯活動模態框
+        function openEditEventModal(eventId) {
+            const eventRef = database.ref(`events/${eventId}`);
             
-            if (eventsList.length === 0) {
-                selector.innerHTML = '<option value="">尚無活動</option>';
+            eventRef.once('value')
+                .then((snapshot) => {
+                    const event = snapshot.val();
+                    
+                    if (!event) {
+                        showToast('找不到此活動');
+                        return;
+                    }
+                    
+                    document.getElementById('editEventId').value = eventId;
+                    document.getElementById('editEventTitle').value = event.title || '';
+                    document.getElementById('editEventDate').value = event.date || '';
+                    document.getElementById('editEventTime').value = event.time || '';
+                    document.getElementById('editEventLocation').value = event.location || '';
+                    document.getElementById('editEventDescription').value = event.description || '';
+                    
+                    openModal(editEventModal);
+                })
+                .catch((error) => {
+                    showToast('讀取活動資料失敗: ' + error.message);
+                    console.error('讀取活動資料失敗:', error);
+                });
+        }
+        
+        // ===== 貴賓管理 =====
+        
+        // 開啟貴賓列表頁面
+        function openVipList(eventId) {
+            currentEventId = eventId;
+            const eventRef = database.ref(`events/${eventId}`);
+            
+            eventRef.once('value')
+                .then((snapshot) => {
+                    const event = snapshot.val();
+                    
+                    if (!event) {
+                        showToast('找不到此活動');
+                        return;
+                    }
+                    
+                    currentEventTitle.textContent = event.title || '活動名稱';
+                    currentEventDate.textContent = `日期：${formatDate(event.date)} ${formatTime(event.time)}`;
+                    currentEventLocation.textContent = `地點：${event.location || '---'}`;
+                    
+                    loadVips(eventId);
+                    changePage('vipListPage');
+                })
+                .catch((error) => {
+                    showToast('讀取活動資料失敗: ' + error.message);
+                    console.error('讀取活動資料失敗:', error);
+                });
+        }
+        
+        // 加載貴賓列表
+        function loadVips(eventId) {
+            vipLoader.style.display = 'block';
+            vipList.innerHTML = '';
+            
+            const vipsRef = database.ref(`vips/${eventId}`);
+            
+            vipsRef.on('value', (snapshot) => {
+                vipLoader.style.display = 'none';
+                
+                if (!snapshot.exists()) {
+                    vipList.innerHTML = '<div class="card"><p>尚無貴賓，請點擊「新增貴賓」或「匯入貴賓名單」按鈕開始建立名單。</p></div>';
+                    return;
+                }
+                
+                const vips = [];
+                snapshot.forEach((childSnapshot) => {
+                    const vip = {
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    };
+                    vips.push(vip);
+                });
+                
+                // 依單位和姓名排序
+                vips.sort((a, b) => {
+                    if (a.organization === b.organization) {
+                        return a.name.localeCompare(b.name, 'zh-TW');
+                    }
+                    return a.organization.localeCompare(b.organization, 'zh-TW');
+                });
+                
+                renderVips(vips);
+            }, (error) => {
+                vipLoader.style.display = 'none';
+                showToast('讀取貴賓列表失敗: ' + error.message);
+                console.error('讀取貴賓列表失敗:', error);
+            });
+        }
+        
+        // 渲染貴賓列表
+        function renderVips(vips) {
+            vipList.innerHTML = '';
+            
+            // 先過濾狀態
+            if (currentStatusFilter !== 'all') {
+                vips = vips.filter(vip => vip.status === currentStatusFilter);
+            }
+            
+            // 再套用搜尋過濾
+            const searchText = document.getElementById('vipSearch').value.trim().toLowerCase();
+            if (searchText) {
+                vips = vips.filter(vip => 
+                    vip.name.toLowerCase().includes(searchText) || 
+                    vip.organization.toLowerCase().includes(searchText) || 
+                    vip.title.toLowerCase().includes(searchText)
+                );
+            }
+            
+            if (vips.length === 0) {
+                vipList.innerHTML = '<div class="card"><p>沒有符合條件的貴賓資料。</p></div>';
                 return;
             }
             
-            eventsList.forEach(event => {
-                const option = document.createElement('option');
-                option.value = event.id;
-                option.textContent = event.name;
-                selector.appendChild(option);
+            vips.forEach(vip => {
+                const vipElement = document.createElement('div');
+                vipElement.className = 'vip-item';
+                vipElement.dataset.id = vip.id;
+                
+                // 根據不同檢視模式渲染不同的 HTML
+                if (viewMode === 'card') {
+                    vipElement.innerHTML = `
+                        <div class="vip-status status-${vip.status}">${getStatusText(vip.status)}</div>
+                        <div class="vip-organization">${vip.organization}</div>
+                        <div class="vip-title">${vip.title}</div>
+                        <div class="vip-name">${vip.name}</div>
+                        ${vip.notes ? `<div class="vip-notes">${vip.notes}</div>` : ''}
+                        <div class="vip-actions">
+                            <button class="action-btn edit-vip" data-id="${vip.id}">✏️ 編輯</button>
+                            <button class="action-btn update-status" data-id="${vip.id}">📝 更新狀態</button>
+                        </div>
+                    `;
+                } else { // 列表模式
+                    vipElement.innerHTML = `
+                        <div class="vip-main-info">
+                            <div class="vip-organization">${vip.organization}</div>
+                            <div class="vip-name">${vip.name} <span class="vip-title">| ${vip.title}</span></div>
+                        </div>
+                        <div class="vip-status status-${vip.status}">${getStatusText(vip.status)}</div>
+                        <button class="action-btn edit-vip" data-id="${vip.id}">✏️</button>
+                    `;
+                }
+                
+                vipList.appendChild(vipElement);
+            });
+            
+            // 更新視圖模式樣式
+            vipList.className = `vip-list ${viewMode}-view`;
+            
+            // 綁定編輯貴賓按鈕
+            document.querySelectorAll('.edit-vip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openEditVipModal(btn.dataset.id);
+                });
+            });
+            
+            // 綁定更新狀態按鈕
+            document.querySelectorAll('.update-status').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    openEditVipModal(btn.dataset.id, 'status');
+                });
             });
         }
-
-        // ===== 貴賓管理函數 =====
-        function loadGuests(eventId) {
-            if (!eventId) {
-                console.error("無法載入貴賓：未指定活動ID");
-                return Promise.resolve();
+        
+        // 新增貴賓
+        function addVip(vipData) {
+            const vipsRef = database.ref(`vips/${currentEventId}`);
+            
+            vipsRef.push(vipData)
+                .then(() => {
+                    showToast('貴賓新增成功');
+                    closeModal(addVipModal);
+                    document.getElementById('addVipForm').reset();
+                })
+                .catch((error) => {
+                    showToast('貴賓新增失敗: ' + error.message);
+                    console.error('貴賓新增失敗:', error);
+                });
+        }
+        
+        // 更新貴賓
+        function updateVip(vipId, vipData) {
+            const vipRef = database.ref(`vips/${currentEventId}/${vipId}`);
+            
+            vipRef.update(vipData)
+                .then(() => {
+                    showToast('貴賓資料更新成功');
+                    closeModal(editVipModal);
+                })
+                .catch((error) => {
+                    showToast('貴賓資料更新失敗: ' + error.message);
+                    console.error('貴賓資料更新失敗:', error);
+                });
+        }
+        
+        // 刪除貴賓
+        function deleteVip(vipId) {
+            if (confirm('確定要刪除此貴賓嗎？')) {
+                const vipRef = database.ref(`vips/${currentEventId}/${vipId}`);
+                
+                vipRef.remove()
+                    .then(() => {
+                        showToast('貴賓刪除成功');
+                        closeModal(editVipModal);
+                    })
+                    .catch((error) => {
+                        showToast('貴賓刪除失敗: ' + error.message);
+                        console.error('貴賓刪除失敗:', error);
+                    });
             }
+        }
+        
+        // 開啟編輯貴賓模態框
+        function openEditVipModal(vipId, focusField = null) {
+            const vipRef = database.ref(`vips/${currentEventId}/${vipId}`);
             
-            currentEvent = eventId;
-            showLoading();
-            
-            return database.ref(`guests/${eventId}`).once('value')
+            vipRef.once('value')
                 .then((snapshot) => {
-                    guestsList = [];
-                    snapshot.forEach((childSnapshot) => {
-                        const guest = childSnapshot.val();
-                        guest.id = childSnapshot.key;
-                        guestsList.push(guest);
-                    });
+                    const vip = snapshot.val();
                     
-                    updateGuestsList();
-                    updateDashboardStats();
-                    hideLoading();
-                })
-                .catch((error) => {
-                    console.error("載入貴賓失敗:", error);
-                    hideLoading();
-                });
-        }
-
-        function saveGuest(guestData) {
-            if (!currentEvent) {
-                alert("請先選擇一個活動");
-                return Promise.reject(new Error("未選擇活動"));
-            }
-            
-            showLoading();
-            
-            const guestRef = guestData.id 
-                ? database.ref(`guests/${currentEvent}/${guestData.id}`) 
-                : database.ref(`guests/${currentEvent}`).push();
-            
-            if (!guestData.id) {
-                guestData.id = guestRef.key;
-            }
-            
-            guestData.lastUpdatedBy = currentUser.uid;
-            guestData.lastUpdatedAt = new Date().toISOString();
-            
-            return guestRef.set(guestData)
-                .then(() => {
-                    console.log("貴賓資料儲存成功");
-                    loadGuests(currentEvent);
-                    return logAction(currentEvent, {
-                        action: guestData.id ? "update_guest" : "add_guest",
-                        guestId: guestData.id,
-                        message: `${guestData.id ? '更新' : '新增'}貴賓: ${guestData.name}`,
-                        performedBy: currentUser.uid
-                    });
-                })
-                .catch((error) => {
-                    console.error("貴賓資料儲存失敗:", error);
-                    alert(`儲存貴賓資料失敗: ${error.message}`);
-                })
-                .finally(() => {
-                    hideLoading();
-                });
-        }
-
-        function updateGuestStatus(guestId, newStatus, additionalData = {}) {
-            if (!currentEvent || !guestId) {
-                return Promise.reject(new Error("缺少必要參數"));
-            }
-            
-            showLoading();
-            
-            const updates = {
-                status: newStatus,
-                lastUpdatedBy: currentUser.uid,
-                lastUpdatedAt: new Date().toISOString(),
-                ...additionalData
-            };
-            
-            return database.ref(`guests/${currentEvent}/${guestId}`).update(updates)
-                .then(() => {
-                    console.log(`貴賓狀態已更新為: ${newStatus}`);
-                    loadGuests(currentEvent);
-                    
-                    const guest = guestsList.find(g => g.id === guestId);
-                    const guestName = guest ? guest.name : guestId;
-                    
-                    return logAction(currentEvent, {
-                        action: "update_status",
-                        guestId: guestId,
-                        message: `更新貴賓 "${guestName}" 狀態為: ${newStatus}`,
-                        performedBy: currentUser.uid,
-                        previousValue: guest ? guest.status : null
-                    });
-                })
-                .catch((error) => {
-                    console.error("更新貴賓狀態失敗:", error);
-                    alert(`更新狀態失敗: ${error.message}`);
-                })
-                .finally(() => {
-                    hideLoading();
-                });
-        }
-
-        // 記錄操作日誌
-        function logAction(eventId, logData) {
-            logData.timestamp = new Date().toISOString();
-            return database.ref(`logs/${eventId}`).push().set(logData)
-                .catch((error) => {
-                    console.error("記錄操作失敗:", error);
-                });
-        }
-
-        // 批量上傳貴賓
-        function batchUploadGuests(eventId, guestsData) {
-            if (!eventId || !guestsData || !Array.isArray(guestsData)) {
-                return Promise.reject(new Error("參數無效"));
-            }
-            
-            showLoading();
-            const updates = {};
-            
-            guestsData.forEach(guest => {
-                const guestId = database.ref(`guests/${eventId}`).push().key;
-                guest.lastUpdatedBy = currentUser.uid;
-                guest.lastUpdatedAt = new Date().toISOString();
-                guest.status = guest.status || "pending";
-                updates[`guests/${eventId}/${guestId}`] = guest;
-            });
-            
-            return database.ref().update(updates)
-                .then(() => {
-                    console.log(`成功批量上傳 ${guestsData.length} 位貴賓`);
-                    loadGuests(eventId);
-                    return logAction(eventId, {
-                        action: "batch_upload",
-                        message: `批量上傳 ${guestsData.length} 位貴賓`,
-                        performedBy: currentUser.uid
-                    });
-                })
-                .catch((error) => {
-                    console.error("批量上傳失敗:", error);
-                    alert(`批量上傳失敗: ${error.message}`);
-                })
-                .finally(() => {
-                    hideLoading();
-                });
-        }
-
-        // ===== 文檔載入完成後初始化應用 =====
-        document.addEventListener('DOMContentLoaded', initApp);
-
-    </script>
-
-    <!-- 批量上傳貴賓模態框 -->
-    <div id="batch-upload-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">批量上傳貴賓</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>請輸入貴賓資料，每行一位貴賓，格式為：姓名,職稱,單位,分類,優先順序</p>
-                <p>例如：張三,總經理,ABC公司,corporate,1</p>
-                <div class="form-group">
-                    <textarea id="batch-guests-data" rows="10" placeholder="請輸入貴賓資料..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="secondary close-modal-btn">取消</button>
-                <button id="batch-upload-btn" class="success">上傳</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 批量上傳按鈕事件處理
-        document.addEventListener('DOMContentLoaded', () => {
-            // 添加批量上傳按鈕到貴賓管理頁面
-            const addBatchUploadBtn = document.createElement('button');
-            addBatchUploadBtn.id = 'open-batch-upload-btn';
-            addBatchUploadBtn.textContent = '批量上傳';
-            addBatchUploadBtn.className = 'secondary';
-            addBatchUploadBtn.style.marginLeft = '8px';
-            $('#add-guest-btn').after(addBatchUploadBtn);
-        
-            // 開啟批量上傳模態框
-            $('#open-batch-upload-btn').addEventListener('click', () => {
-                openModal('#batch-upload-modal');
-            });
-        
-            // 處理批量上傳
-            $('#batch-upload-btn').addEventListener('click', () => {
-                const data = $('#batch-guests-data').value;
-                if (!data.trim()) {
-                    alert('請輸入貴賓資料');
-                    return;
-                }
-        
-                if (!currentEvent) {
-                    alert('請先選擇一個活動');
-                    closeModal('#batch-upload-modal');
-                    return;
-                }
-        
-                const lines = data.split('\n').filter(line => line.trim());
-                const guestsData = [];
-        
-                for (const line of lines) {
-                    const [name, title, organization, category, priority] = line.split(',').map(item => item.trim());
-                    if (name) {
-                        guestsData.push({
-                            name,
-                            title: title || '',
-                            organization: organization || '',
-                            category: category || 'corporate',
-                            priority: parseInt(priority) || 5,
-                            status: 'pending'
-                        });
-                    }
-                }
-        
-                if (guestsData.length > 0) {
-                    batchUploadGuests(currentEvent, guestsData)
-                        .then(() => {
-                            $('#batch-guests-data').value = '';
-                            closeModal('#batch-upload-modal');
-                        });
-                } else {
-                    alert('未能解析任何有效的貴賓資料');
-                }
-            });
-        });
-    </script>
-
-    <!-- 註冊用戶模態框 -->
-    <div id="register-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">註冊新用戶</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="register-email">電子郵箱 *</label>
-                    <input type="email" id="register-email" placeholder="請輸入電子郵箱" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password">密碼 *</label>
-                    <input type="password" id="register-password" placeholder="請輸入密碼" required>
-                </div>
-                <div class="form-group">
-                    <label for="confirm-password">確認密碼 *</label>
-                    <input type="password" id="confirm-password" placeholder="請再次輸入密碼" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-name">姓名 *</label>
-                    <input type="text" id="register-name" placeholder="請輸入姓名" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-role">角色 *</label>
-                    <select id="register-role" required>
-                        <option value="host">主持人</option>
-                        <option value="organizer">主辦單位</option>
-                        <option value="staff" selected>工作人員</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="secondary close-modal-btn">取消</button>
-                <button id="save-register-btn" class="success">註冊</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 確保DOM完全載入後執行
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM已載入完成");
-            
-            // 初始化應用
-            initApp();
-            
-            // 手動重新綁定登入按鈕事件
-            const loginBtn = document.getElementById('login-btn');
-            if (loginBtn) {
-                console.log("找到登入按鈕，添加點擊事件");
-                loginBtn.addEventListener('click', function() {
-                    console.log("登入按鈕被點擊");
-                    const email = document.getElementById('email').value;
-                    const password = document.getElementById('password').value;
-                    
-                    // 開發階段直接進入系統
-                    document.getElementById('login-page').classList.remove('active');
-                    document.getElementById('app-page').classList.add('active');
-                    // 載入示例數據
-                    if (typeof loadSampleData === 'function') {
-                        loadSampleData();
+                    if (!vip) {
+                        showToast('找不到此貴賓資料');
+                        return;
                     }
                     
-                    // 手動綁定導航事件
-                    document.querySelectorAll('.nav-link').forEach(link => {
-                        link.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            const targetPage = link.getAttribute('data-page');
-                            navigateTo(targetPage);
-                        });
-                    });
+                    document.getElementById('editVipId').value = vipId;
+                    document.getElementById('editVipOrganization').value = vip.organization || '';
+                    document.getElementById('editVipTitle').value = vip.title || '';
+                    document.getElementById('editVipName').value = vip.name || '';
+                    document.getElementById('editVipStatus').value = vip.status || 'pending';
+                    document.getElementById('editVipNotes').value = vip.notes || '';
                     
-                    // 手動綁定「進入活動」按鈕
-                    document.getElementById('enter-event-btn').addEventListener('click', () => {
-                        const eventId = document.getElementById('current-event').value;
-                        if (!eventId) {
-                            alert("請選擇一個活動");
+                    openModal(editVipModal);
+                    
+                    // 如果有指定焦點欄位，聚焦該欄位
+                    if (focusField === 'status') {
+                        document.getElementById('editVipStatus').focus();
+                    }
+                })
+                .catch((error) => {
+                    showToast('讀取貴賓資料失敗: ' + error.message);
+                    console.error('讀取貴賓資料失敗:', error);
+                });
+        }
+        
+        // 匯入貴賓名單
+        function importVips(csvData) {
+            // 使用 Papa Parse 解析 CSV
+            Papa.parse(csvData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        showToast('CSV 解析錯誤: ' + results.errors[0].message);
+                        console.error('CSV 解析錯誤:', results.errors);
+                        return;
+                    }
+                    
+                    const vipsRef = database.ref(`vips/${currentEventId}`);
+                    const vipsData = results.data;
+                    
+                    // 檢查欄位
+                    if (vipsData.length > 0) {
+                        const requiredFields = ['單位', '稱謂', '姓名'];
+                        const firstRow = vipsData[0];
+                        
+                        const missingFields = requiredFields.filter(field => !Object.keys(firstRow).includes(field));
+                        
+                        if (missingFields.length > 0) {
+                            showToast(`缺少必要欄位: ${missingFields.join(', ')}`);
+                            return;
+                        }
+                    }
+                    
+                    // 批量新增貴賓
+                    const batch = {};
+                    
+                    vipsData.forEach((row, index) => {
+                        const vipData = {
+                            organization: row['單位'] || '',
+                            title: row['稱謂'] || '',
+                            name: row['姓名'] || '',
+                            status: row['狀態'] || 'pending',
+                            notes: row['備註'] || ''
+                        };
+                        
+                        // 驗證數據
+                        if (!vipData.organization || !vipData.name) {
+                            console.warn(`第 ${index + 1} 行缺少單位或姓名資料，已略過`);
                             return;
                         }
                         
-                        currentEvent = eventId;
-                        navigateTo('guests');
+                        // 狀態值驗證
+                        const validStatuses = ['pending', 'attending', 'not-attending', 'arrived', 'introduced', 'departed'];
+                        if (!validStatuses.includes(vipData.status)) {
+                            vipData.status = 'pending';
+                        }
+                        
+                        // 生成唯一 ID
+                        const vipId = vipsRef.push().key;
+                        batch[vipId] = vipData;
                     });
                     
+                    // 儲存到資料庫
+                    vipsRef.update(batch)
+                        .then(() => {
+                            showToast(`成功匯入 ${Object.keys(batch).length} 筆貴賓資料`);
+                            closeModal(importVipsModal);
+                            document.getElementById('importVipsForm').reset();
+                        })
+                        .catch((error) => {
+                            showToast('匯入貴賓資料失敗: ' + error.message);
+                            console.error('匯入貴賓資料失敗:', error);
+                        });
+                }
+            });
+        }
+        
+        // ===== 事件監聽器 =====
+        
+        // 頁面載入時
+        document.addEventListener('DOMContentLoaded', () => {
+            // 加載活動列表
+            loadEvents();
+            
+            // 新增活動按鈕
+            document.getElementById('addEventBtn').addEventListener('click', () => {
+                document.getElementById('addEventForm').reset();
+                openModal(addEventModal);
+            });
+            
+            // 新增活動表單提交
+            document.getElementById('addEventForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const eventData = {
+                    title: document.getElementById('eventTitle').value,
+                    date: document.getElementById('eventDate').value,
+                    time: document.getElementById('eventTime').value,
+                    location: document.getElementById('eventLocation').value,
+                    description: document.getElementById('eventDescription').value,
+                    createdAt: new Date().toISOString()
+                };
+                
+                addEvent(eventData);
+            });
+            
+            // 編輯活動表單提交
+            document.getElementById('editEventForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const eventId = document.getElementById('editEventId').value;
+                const eventData = {
+                    title: document.getElementById('editEventTitle').value,
+                    date: document.getElementById('editEventDate').value,
+                    time: document.getElementById('editEventTime').value,
+                    location: document.getElementById('editEventLocation').value,
+                    description: document.getElementById('editEventDescription').value,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                updateEvent(eventId, eventData);
+            });
+            
+            // 刪除活動按鈕
+            document.getElementById('deleteEventBtn').addEventListener('click', () => {
+                const eventId = document.getElementById('editEventId').value;
+                deleteEvent(eventId);
+            });
+            
+            // 新增貴賓按鈕
+            document.getElementById('addVipBtn').addEventListener('click', () => {
+                document.getElementById('addVipForm').reset();
+                openModal(addVipModal);
+            });
+            
+            // 新增貴賓表單提交
+            document.getElementById('addVipForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const vipData = {
+                    organization: document.getElementById('vipOrganization').value,
+                    title: document.getElementById('vipTitle').value,
+                    name: document.getElementById('vipName').value,
+                    status: document.getElementById('vipStatus').value,
+                    notes: document.getElementById('vipNotes').value,
+                    createdAt: new Date().toISOString()
+                };
+                
+                addVip(vipData);
+            });
+            
+            // 編輯貴賓表單提交
+            document.getElementById('editVipForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const vipId = document.getElementById('editVipId').value;
+                const vipData = {
+                    organization: document.getElementById('editVipOrganization').value,
+                    title: document.getElementById('editVipTitle').value,
+                    name: document.getElementById('editVipName').value,
+                    status: document.getElementById('editVipStatus').value,
+                    notes: document.getElementById('editVipNotes').value,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                updateVip(vipId, vipData);
+            });
+            
+            // 刪除貴賓按鈕
+            document.getElementById('deleteVipBtn').addEventListener('click', () => {
+                const vipId = document.getElementById('editVipId').value;
+                deleteVip(vipId);
+            });
+            
+            // 匯入貴賓按鈕
+            document.getElementById('importVipsBtn').addEventListener('click', () => {
+                document.getElementById('importVipsForm').reset();
+                openModal(importVipsModal);
+            });
+            
+            // 匯入貴賓表單提交
+            document.getElementById('importVipsForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('vipsCsvFile');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showToast('請選擇 CSV 檔案');
                     return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    importVips(event.target.result);
+                };
+                reader.onerror = function() {
+                    showToast('讀取檔案失敗');
+                };
+                reader.readAsText(file);
+            });
+            
+            // 狀態過濾器點擊
+            document.querySelectorAll('.status-filter-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    // 更新過濾狀態
+                    currentStatusFilter = item.dataset.status;
+                    
+                    // 更新選中樣式
+                    document.querySelectorAll('.status-filter-item').forEach(i => {
+                        i.classList.remove('active');
+                    });
+                    item.classList.add('active');
+                    
+                    // 重新載入貴賓列表
+                    loadVips(currentEventId);
                 });
-            } else {
-                console.error("找不到登入按鈕");
-            }
+            });
+            
+            // 視圖模式切換
+            document.querySelectorAll('.view-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // 更新視圖模式
+                    viewMode = btn.dataset.mode;
+                    
+                    // 更新選中樣式
+                    document.querySelectorAll('.view-mode-btn').forEach(b => {
+                        b.classList.remove('active');
+                    });
+                    btn.classList.add('active');
+                    
+                    // 重新載入貴賓列表
+                    loadVips(currentEventId);
+                });
+            });
+            
+            // 搜尋活動
+            document.getElementById('eventSearch').addEventListener('input', (e) => {
+                const searchText = e.target.value.trim().toLowerCase();
+                
+                // 獲取所有活動元素
+                const eventItems = document.querySelectorAll('.event-item');
+                
+                eventItems.forEach(item => {
+                    const title = item.querySelector('.event-title').textContent.toLowerCase();
+                    const details = item.querySelector('.event-date').textContent.toLowerCase();
+                    
+                    // 根據搜尋文字顯示或隱藏
+                    if (title.includes(searchText) || details.includes(searchText)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 搜尋貴賓
+            document.getElementById('vipSearch').addEventListener('input', (e) => {
+                // 重新載入貴賓列表並套用搜尋過濾
+                loadVips(currentEventId);
+            });
         });
     </script>
-
 </body>
 </html>
